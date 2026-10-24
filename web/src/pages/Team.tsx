@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useDisplayName, useStore } from '../store';
+import { getPicture, useDisplayName, useMyRow, useStore } from '../store';
 import type { Row } from '../types';
 import { Avatar, Chip, Drawer, DrawerHead, Empty, Field, Modal, PageHead } from '../components/ui';
 import { DONE, isMine } from '../util';
@@ -10,6 +10,7 @@ export function Team() {
   const { t, v } = useI18n();
   const { all } = useStore();
   const dn = useDisplayName();
+  const mine = useMyRow();
   const [openUser, setOpenUser] = useState<string | null>(null);
   const [openDir, setOpenDir] = useState<string | null>(null);
   const [adding, setAdding] = useState<'users' | 'team' | null>(null);
@@ -31,12 +32,12 @@ export function Team() {
 
       <div className="card-title" style={{ marginTop: 4 }}>{t('members')}</div>
       <div className="grid g-3" style={{ marginBottom: 26 }}>
-        {users.map((u) => (
-          <div key={u.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setOpenUser(u.id)}>
+        {[...users].sort((a, b) => Number(b === mine) - Number(a === mine)).map((u) => (
+          <div key={u.id} className={u === mine ? 'card is-me' : 'card'} style={{ cursor: 'pointer' }} onClick={() => setOpenUser(u.id)}>
             <div className="row" style={{ flexWrap: 'nowrap', gap: 12 }}>
-              <Avatar name={dn(u.name) || String(u.email)} size={44} />
+              <Avatar name={dn(u.name) || String(u.email)} src={u === mine ? getPicture() : undefined} size={44} />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: 16 }}>{dn(u.name) || '—'}</div>
+                <div style={{ fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: 16 }}>{dn(u.name) || '—'}{u === mine && <span className="you-tag">{t('you')}</span>}</div>
                 <div className="muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email || t('noEmail')}</div>
               </div>
               <Chip color={u.teamRole === 'Instructor' ? 'var(--accent-2)' : 'var(--c-rd)'}>{v(u.teamRole || 'Student')}</Chip>
@@ -78,7 +79,7 @@ export function Team() {
   );
 }
 
-function RolesPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function RolesPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { all } = useStore();
   const roles = (all!.dropdowns.Owners ?? []).filter((r) => r !== 'All Students');
   const sel = value.split(',').map((s) => s.trim()).filter(Boolean);

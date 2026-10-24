@@ -35,7 +35,7 @@ export function StoreProvider({ children, onSignOut }: { children: ReactNode; on
     setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 3800);
   }, []);
 
-  const signOut = useCallback(() => { setToken(null); onSignOut(); }, [onSignOut]);
+  const signOut = useCallback(() => { setToken(null); savePicture(''); onSignOut(); }, [onSignOut]);
 
   const handleErr = useCallback((err: string) => {
     if (err === 'unauthorized') { signOut(); return; }
@@ -135,6 +135,20 @@ export function StoreProvider({ children, onSignOut }: { children: ReactNode; on
 }
 
 export const useStore = () => useContext(Ctx);
+
+/** Google profile photo, saved on this device at sign-in (never written to the sheet). */
+const PIC_KEY = 'criminals.picture';
+export const savePicture = (url: string) => { try { if (url) localStorage.setItem(PIC_KEY, url); else localStorage.removeItem(PIC_KEY); } catch { /* */ } };
+export const getPicture = () => { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } };
+
+/** The signed-in member's row in USERS (matched by email, then by name for demo data). */
+export function useMyRow(): Row | undefined {
+  const { all } = useStore();
+  if (!all) return undefined;
+  const e = all.me.email.trim().toLowerCase();
+  return all.data.users.find((u) => String(u.email).trim().toLowerCase() === e)
+    ?? all.data.users.find((u) => String(u.name).trim().toLowerCase() === all.me.name.trim().toLowerCase());
+}
 
 /** Names are stored in English; in Arabic mode show the member's Arabic name (USERS -> Name (Arabic)). */
 export function useDisplayName() {

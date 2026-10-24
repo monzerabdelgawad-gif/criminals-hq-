@@ -7,9 +7,10 @@ import {
 import { getToken } from './api';
 import { DEMO } from './config';
 import { useI18n, type TKey } from './i18n';
-import { StoreProvider, useDisplayName, useStore } from './store';
+import { StoreProvider, getPicture, useDisplayName, useStore } from './store';
 import { Login } from './Login';
-import { Avatar, Modal, Toasts } from './components/ui';
+import { Avatar, Chip, Modal, Toasts } from './components/ui';
+import { Welcome } from './components/Welcome';
 import { Home } from './pages/Home';
 import { Tasks } from './pages/Tasks';
 import { Timeline } from './pages/Timeline';
@@ -57,6 +58,7 @@ export default function App() {
       {authed ? (
         <StoreProvider onSignOut={onSignOut}>
           <Shell theme={theme} setTheme={setTheme} />
+          <Welcome />
           <Toasts />
         </StoreProvider>
       ) : <Login onLogin={onLogin} />}
@@ -65,7 +67,7 @@ export default function App() {
 }
 
 function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => void }) {
-  const { t, lang, setLang } = useI18n();
+  const { t, v, lang, setLang } = useI18n();
   const { all, error, refresh, busy, signOut } = useStore();
   const dn = useDisplayName();
   const [page, setPage] = useState<Page>(readHash);
@@ -134,7 +136,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
               {busy && <span className="saving-dot pulse" title={t('saving')} />}
             </div>
             <div className="row" style={{ padding: '6px', flexWrap: 'nowrap' }}>
-              <Avatar name={dn(all.me.name)} />
+              <Avatar name={dn(all.me.name)} src={getPicture()} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{dn(all.me.name)}</div>
                 <div className="muted" style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis' }}>{all.me.email}</div>
@@ -162,6 +164,17 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
       </nav>
 
       <Modal open={more} onClose={() => setMore(false)} title={t('more')}>
+        <div className="me-card">
+          <Avatar name={dn(all.me.name)} src={getPicture()} size={44} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontWeight: 700 }}><bdi>{dn(all.me.name)}</bdi> <span className="you-tag">{t('you')}</span></div>
+            <div className="muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{all.me.email}</div>
+            <div className="row" style={{ gap: 5, marginTop: 6 }}>
+              <Chip color={all.me.teamRole === 'Instructor' ? 'var(--accent-2)' : 'var(--accent)'}>{v(all.me.teamRole || 'Student')}</Chip>
+              {all.me.taskRoles.map((r) => <Chip key={r}>{r}</Chip>)}
+            </div>
+          </div>
+        </div>
         <div className="grid g-2" style={{ gap: 8 }}>
           {NAV.filter((n) => !MOBILE_TABS.includes(n.id)).map((n) => (
             <button key={n.id} className={cls('nav-item', page === n.id && 'active')} onClick={() => go(n.id)}>{n.icon} {t(n.key)}</button>

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { call, setToken } from './api';
 import { GOOGLE_CLIENT_ID } from './config';
 import { useI18n } from './i18n';
+import { savePicture } from './store';
 
 declare global {
   interface Window {
@@ -34,9 +35,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         client_id: GOOGLE_CLIENT_ID,
         callback: async (res: { credential: string }) => {
           setBusy(true); setErr(null);
-          const r = await call<{ token: string }>('login', { idToken: res.credential });
+          const r = await call<{ token: string; picture?: string }>('login', { idToken: res.credential });
           setBusy(false);
-          if (r.ok) { setToken(r.token); onLogin(); return; }
+          if (r.ok) { setToken(r.token); savePicture(r.picture || ''); onLogin(); return; }
           setErr(r.error === 'not_allowed' ? `${t('notAllowed')} (${String(r.email ?? '')})`
             : r.error === 'not_configured' ? t('notConfigured')
             : r.error === 'network' ? t('offline') : `${t('error')}: ${r.error}`);
@@ -60,6 +61,8 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         <button className="btn ghost sm" style={{ marginTop: 18 }} onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>
           {lang === 'en' ? 'عربي' : 'English'}
         </button>
+        <p className="muted small" style={{ marginTop: 22, lineHeight: 1.6 }}>{t('appAbout')}</p>
+        <a className="small" href="./privacy.html" style={{ color: 'var(--accent, inherit)' }}>{t('privacyPolicy')}</a>
       </motion.div>
     </div>
   );

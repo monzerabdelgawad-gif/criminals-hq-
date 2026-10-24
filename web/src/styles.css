@@ -298,3 +298,16 @@ html[dir='rtl'] .g-bar > i { inset: 0 0 0 auto; }
 .link { color: var(--accent-2); text-decoration: none; word-break: break-all; }
 .link:hover { text-decoration: underline; }
 html[dir='rtl'] .flip { transform: scaleX(-1); }
+
+/* ---------- identity: welcome, "you", profile ---------- */
+.welcome { width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; }
+.welcome-head { text-align: center; display: flex; flex-direction: column; align-items: center; }
+.welcome-name { font-family: var(--font-display); font-size: 34px; letter-spacing: -0.04em; margin: 2px 0 6px; line-height: 1.1; }
+.welcome-roles { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--stroke); }
+.welcome .avatar, .hero-me .avatar { box-shadow: 0 0 0 3px var(--accent); }
+.hero-me { display: flex; align-items: center; gap: 12px; }
+.you-tag { display: inline-block; margin-inline-start: 8px; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 700;
+  background: var(--accent); color: var(--accent-ink, #fff); vertical-align: middle; text-transform: lowercase; }
+.card.is-me { box-shadow: 0 0 0 1.5px var(--accent), 0 10px 30px -12px var(--accent); }
+.me-card { display: flex; gap: 12px; align-items: center; padding: 12px; margin-bottom: 14px; border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent); }

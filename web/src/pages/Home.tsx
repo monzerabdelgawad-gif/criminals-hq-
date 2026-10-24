@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, Flame, Skull, ArrowRight } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useDisplayName, useStore } from '../store';
-import { Avatar, Bar, Empty, Ring, StatusChip, WsChip } from '../components/ui';
+import { getPicture, useDisplayName, useMyRow, useStore } from '../store';
+import { Avatar, Bar, Chip, Empty, Ring, StatusChip, WsChip } from '../components/ui';
 import { TaskDrawer } from '../components/TaskDrawer';
 import { DONE, WS_COLOR, daysBetween, isMine, isOverdue, parseDate, pct, today } from '../util';
 import type { Page } from '../App';
@@ -17,6 +17,9 @@ export function Home({ go }: { go: (p: Page) => void }) {
   const [open, setOpen] = useState<string | null>(null);
   const { tasks, milestones, settings } = all!.data;
   const me = all!.me;
+  const myRow = useMyRow();
+  // roles from the USERS row update instantly after editing; the session copy waits for the next refresh
+  const myRoles = myRow ? String(myRow.taskRoles ?? '').split(',').map((s) => s.trim()).filter(Boolean) : me.taskRoles;
 
   const stats = useMemo(() => {
     const active = tasks.filter((x) => x.status !== 'Cancelled');
@@ -48,7 +51,19 @@ export function Home({ go }: { go: (p: Page) => void }) {
       <motion.div className="card hero" {...fade(0)}>
         <div className="hero-grid">
           <div>
-            <div className="muted small" style={{ fontWeight: 600 }}>{greet}, <bdi>{dn(me.name)}</bdi> 👋 · <bdi>{vibe}</bdi></div>
+            <div className="hero-me">
+              <Avatar name={dn(me.name)} src={getPicture()} size={46} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700 }}>{greet}, <bdi>{dn(me.name)}</bdi> 👋</div>
+                <div className="row" style={{ gap: 5, marginTop: 4 }}>
+                  <Chip color={me.teamRole === 'Instructor' ? 'var(--accent-2)' : 'var(--accent)'}>{v(me.teamRole || 'Student')}</Chip>
+                  {myRoles.length > 0
+                    ? myRoles.map((r) => <Chip key={r}>{r}</Chip>)
+                    : <button className="btn sm ghost" onClick={() => go('team')}>⚠ {t('setRoles')}</button>}
+                </div>
+              </div>
+            </div>
+            <div className="muted small" style={{ fontWeight: 600, marginTop: 14 }}><bdi>{vibe}</bdi></div>
             <h2 style={{ marginTop: 8 }}>criminals <span className="grad">bioglow</span> season</h2>
             <div className="muted" style={{ marginTop: 8 }}>{t('heroSub')}</div>
           </div>
