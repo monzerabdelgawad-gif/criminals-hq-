@@ -18,10 +18,14 @@ export function Uploads() {
   const [taskId, setTaskId] = useState('');
   const [note, setNote] = useState('');
   const [progress, setProgress] = useState<string | null>(null);
+  const [big, setBig] = useState<File[]>([]);
 
   const send = async (files: FileList | null) => {
     if (!files?.length) return;
-    for (const f of Array.from(files)) {
+    const list = Array.from(files);
+    const limit = MAX_UPLOAD_MB * 1024 * 1024;
+    setBig(list.filter((f) => f.size > limit));
+    for (const f of list.filter((x) => x.size <= limit)) {
       setProgress(`${t('uploading')} ${f.name}`);
       await upload(f, { workstream: ws || t('general'), taskId, note });
     }
@@ -44,6 +48,17 @@ export function Uploads() {
             <div className="muted small" style={{ marginTop: 4 }}>PDF, images, docs, videos…</div>
             <input ref={input} type="file" multiple hidden onChange={(e) => { send(e.target.files); e.target.value = ''; }} />
           </div>
+          {big.length > 0 && (
+            <div className="warn-box" style={{ marginTop: 14, textAlign: 'start' }}>
+              <div style={{ fontWeight: 700 }}>⚠ {t('bigFilesTitle')}</div>
+              <div className="small" style={{ margin: '4px 0 6px' }}>{t('bigFilesSub')}</div>
+              {big.map((f) => <div key={f.name} className="small mono">{f.name} · {(f.size / 1048576).toFixed(0)} MB</div>)}
+              <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                {all!.folderUrl && <a className="btn primary sm" href={all!.folderUrl} target="_blank" rel="noreferrer"><FolderOpen size={14} /> {t('openFolder')}</a>}
+                <button className="btn sm ghost" onClick={() => setBig([])}>{t('dismiss')}</button>
+              </div>
+            </div>
+          )}
           <div className="fields" style={{ marginTop: 16 }}>
             <div>
               <label className="lbl">{t('uploadTo')}</label>

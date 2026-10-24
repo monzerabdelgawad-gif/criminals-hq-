@@ -11,6 +11,7 @@ import { StoreProvider, getPicture, useDisplayName, useStore } from './store';
 import { Login } from './Login';
 import { Avatar, Chip, Modal, Toasts } from './components/ui';
 import { Welcome } from './components/Welcome';
+import { InstallButton, OfflineBanner } from './components/Mobile';
 import { Home } from './pages/Home';
 import { Tasks } from './pages/Tasks';
 import { Timeline } from './pages/Timeline';
@@ -55,6 +56,7 @@ export default function App() {
   return (
     <>
       <div className="bg"><div className="blob b1" /><div className="blob b2" /><div className="blob b3" /><div className="blob b4" /><div className="grain" /></div>
+      <OfflineBanner />
       {authed ? (
         <StoreProvider onSignOut={onSignOut}>
           <Shell theme={theme} setTheme={setTheme} />
@@ -184,6 +186,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
           <button className="btn sm" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />} {t('theme')}</button>
           <button className="btn sm" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}><Languages size={14} /> {lang === 'en' ? 'عربي' : 'English'}</button>
           {!DEMO && <button className="btn sm" onClick={signOut}><LogOut size={14} /> {t('signOut')}</button>}
+          <InstallButton />
         </div>
         {DEMO && <div className="demo-pill" style={{ marginTop: 12 }}>🧪 {t('demoMode')}</div>}
       </Modal>

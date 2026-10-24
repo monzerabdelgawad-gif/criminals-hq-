@@ -4,6 +4,7 @@ import { call, setToken } from './api';
 import { GOOGLE_CLIENT_ID } from './config';
 import { useI18n } from './i18n';
 import { savePicture } from './store';
+import { InAppBanner } from './components/Mobile';
 
 declare global {
   interface Window {
@@ -55,6 +56,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         <div className="logo">C</div>
         <h1>criminals</h1>
         <div className="tag">FLL BIOGLOW 2026–27 · {t('signInTitle')}</div>
+        <InAppBanner />
         <div className="gbtn" ref={btn} style={{ opacity: busy ? 0.4 : 1 }} />
         <div className="muted small" style={{ marginTop: 14 }}>{busy ? t('loading') : t('signInSub')}</div>
         {err && <div className="err-box">{err}</div>}
