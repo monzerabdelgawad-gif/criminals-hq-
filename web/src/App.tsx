@@ -7,7 +7,7 @@ import {
 import { getToken } from './api';
 import { DEMO } from './config';
 import { useI18n, type TKey } from './i18n';
-import { StoreProvider, getPicture, useDisplayName, useStore } from './store';
+import { StoreProvider, useDisplayName, useStore } from './store';
 import { Login } from './Login';
 import { Avatar, Chip, Modal, Toasts } from './components/ui';
 import { Welcome } from './components/Welcome';
@@ -81,6 +81,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
     return () => window.removeEventListener('hashchange', on);
   }, []);
   const go = (p: Page) => { location.hash = '/' + p; setPage(p); setMore(false); window.scrollTo({ top: 0 }); };
+  const openMe = () => { try { sessionStorage.setItem('criminals.openMe', '1'); } catch { /* */ } go('team'); };
 
   // first visit: use the language saved on the member's profile
   useEffect(() => {
@@ -137,13 +138,13 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
               <button className="btn icon" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')} aria-label={t('language')}><Languages size={16} /></button>
               {busy && <span className="saving-dot pulse" title={t('saving')} />}
             </div>
-            <div className="row" style={{ padding: '6px', flexWrap: 'nowrap' }}>
-              <Avatar name={dn(all.me.name)} src={getPicture()} />
+            <div className="row me-row" style={{ padding: '6px', flexWrap: 'nowrap' }} onClick={openMe} title={t('editProfile')}>
+              <Avatar name={dn(all.me.name)} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{dn(all.me.name)}</div>
                 <div className="muted" style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis' }}>{all.me.email}</div>
               </div>
-              {!DEMO && <button className="btn icon ghost" onClick={signOut} aria-label={t('signOut')}><LogOut size={16} /></button>}
+              {!DEMO && <button className="btn icon ghost" onClick={(e) => { e.stopPropagation(); signOut(); }} aria-label={t('signOut')}><LogOut size={16} /></button>}
             </div>
           </div>
         </div>
@@ -167,7 +168,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
 
       <Modal open={more} onClose={() => setMore(false)} title={t('more')}>
         <div className="me-card">
-          <Avatar name={dn(all.me.name)} src={getPicture()} size={44} />
+          <Avatar name={dn(all.me.name)} size={44} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontWeight: 700 }}><bdi>{dn(all.me.name)}</bdi> <span className="you-tag">{t('you')}</span></div>
             <div className="muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{all.me.email}</div>
@@ -175,6 +176,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
               <Chip color={all.me.teamRole === 'Instructor' ? 'var(--accent-2)' : 'var(--accent)'}>{v(all.me.teamRole || 'Student')}</Chip>
               {all.me.taskRoles.map((r) => <Chip key={r}>{r}</Chip>)}
             </div>
+            <button className="btn sm" style={{ marginTop: 10 }} onClick={openMe}>✏️ {t('editProfile')}</button>
           </div>
         </div>
         <div className="grid g-2" style={{ gap: 8 }}>

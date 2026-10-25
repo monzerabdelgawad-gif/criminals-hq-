@@ -318,3 +318,11 @@ html[dir='rtl'] .flip { transform: scaleX(-1); }
 .offline-pill { position: fixed; z-index: 80; top: calc(10px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600;
   width: max-content; max-width: calc(100vw - 32px); background: var(--s-bl); color: #fff; box-shadow: var(--shadow); }
+
+/* ---------- profile photo & permissions ---------- */
+.photo-picker { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 14px; }
+.photo-picker .avatar { box-shadow: 0 0 0 3px var(--accent); }
+.lock-note { margin: 0 0 14px; padding: 9px 12px; border-radius: 12px; font-size: 12.5px; text-align: center;
+  background: var(--glass-2); border: 1px solid var(--stroke); color: var(--text-2); }
+.me-row { cursor: pointer; border-radius: 14px; transition: background .15s; }
+.me-row:hover { background: var(--glass-2); }

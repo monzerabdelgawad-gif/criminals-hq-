@@ -149,7 +149,7 @@ function build(): AllData {
   const FI = 'https://www.firstinspires.org/resource-library/fll/challenge/challenge-and-resources';
   return {
     rev: 1,
-    me: { email: 'demo@criminals.team', name: 'Monzer', nameAr: 'منذر', teamRole: 'Student', taskRoles: [], lang: 'ar' },
+    me: { email: 'demo@criminals.team', name: 'Monzer', nameAr: 'منذر', teamRole: 'Student', taskRoles: [], lang: 'ar', photo: '', isAdmin: true },
     data: {
       tasks: buildTasks(),
       milestones: M.map((m, i) => ({ _row: i + 4, id: m[0], workstream: m[1], name: m[2], description: '', targetDate: m[3],
@@ -166,8 +166,8 @@ function build(): AllData {
         { _row: 36, id: 'r36', name: 'BIOGLOW Robot Game Rulebook', workstream: 'Robot Game', url: FI, version: '⚠ Confirm version', lastChecked: '', verifiedBy: '' },
         { _row: 40, id: 'r40', name: 'LEGO Education Season Materials', workstream: 'All', url: 'https://education.lego.com/en-us/first-lego-league/season-materials/', version: '2026-2027', lastChecked: '24 Oct 2026', verifiedBy: 'Coach' },
       ],
-      users: TEAM.map(([name, nameAr, role], i) => ({ _row: i + 2, id: 'r' + (i + 2), email: i === 0 ? 'demo@criminals.team' : '',
-        name, nameAr, teamRole: role, taskRoles: '', lang: 'ar' })),
+      users: TEAM.map(([name, nameAr, role], i) => ({ _row: i + 2, id: 'r' + (i + 2), email: i === 0 ? 'demo@criminals.team' : i === 1 ? 'arwa@example.com' : i === 10 ? 'ziad@example.com' : '',
+        name, nameAr, teamRole: role, taskRoles: '', lang: 'ar', photo: '' })),
     },
     dropdowns: {
       Workstreams: Object.values(WS),
@@ -213,10 +213,23 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
       const rows = db.data[body.entity as Entity];
       const row = rows.find((r) => r.id === body.id);
       if (!row) return { ok: false, error: 'not_found' };
+      if (body.entity === 'users') {
+        // same rules as the real backend (Code.gs -> userFieldBlocked_)
+        const own = String(row.email).toLowerCase() === me.email.toLowerCase();
+        for (const c of body.changes as Change[]) {
+          if (['email', 'teamRole'].includes(c.field) && !me.isAdmin) return { ok: false, error: 'admin_only' };
+          if (['name', 'nameAr', 'taskRoles', 'lang', 'photo'].includes(c.field) && !own && !(me.isAdmin && !row.email)) return { ok: false, error: 'not_your_profile' };
+        }
+      }
       for (const c of body.changes as Change[]) {
+        const pic = c.field === 'photo';
         db.activity.unshift({ timestamp: now, name: me.name, email: me.email, entity: String(body.entity), id: String(body.id),
-          field: c.field, oldValue: String(row[c.field] ?? ''), newValue: c.value });
+          field: c.field, oldValue: pic ? (row.photo ? '(photo)' : '') : String(row[c.field] ?? ''), newValue: pic ? '(new photo)' : c.value });
         row[c.field] = toDisplay(c.value);
+      }
+      if (body.entity === 'users' && String(row.email).toLowerCase() === me.email.toLowerCase()) {
+        Object.assign(me, { photo: row.photo, name: row.name, nameAr: row.nameAr, lang: row.lang,
+          taskRoles: String(row.taskRoles || '').split(',').map((s) => s.trim()).filter(Boolean) });
       }
       if (body.entity === 'tasks') { row.lastUpdated = fmt(new Date()); row.updatedBy = me.name; }
       if (body.entity === 'risks') row.score = String(Number(row.likelihood) * Number(row.impact));

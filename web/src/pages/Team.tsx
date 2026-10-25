@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { getPicture, useDisplayName, useMyRow, useStore } from '../store';
+import { getPicture, useDisplayName, useMyRow, useProfileRights, useStore } from '../store';
+import { PhotoPicker } from '../components/PhotoPicker';
 import type { Row } from '../types';
 import { Avatar, Chip, Drawer, DrawerHead, Empty, Field, Modal, PageHead } from '../components/ui';
 import { DONE, isMine } from '../util';
@@ -12,6 +13,12 @@ export function Team() {
   const dn = useDisplayName();
   const mine = useMyRow();
   const [openUser, setOpenUser] = useState<string | null>(null);
+  // "Edit your profile" elsewhere in the app opens your own card here
+  useEffect(() => {
+    try {
+      if (mine && sessionStorage.getItem('criminals.openMe')) { sessionStorage.removeItem('criminals.openMe'); setOpenUser(mine.id); }
+    } catch { /* */ }
+  }, [mine]);
   const [openDir, setOpenDir] = useState<string | null>(null);
   const [adding, setAdding] = useState<'users' | 'team' | null>(null);
   const { users, team, tasks } = all!.data;
@@ -27,7 +34,7 @@ export function Team() {
   return (
     <div>
       <PageHead title={t('team')} sub={`${users.length} ${t('membersCount')}`}>
-        <button className="btn primary" onClick={() => setAdding('users')}><UserPlus size={16} /> {t('addMember')}</button>
+        {all!.me.isAdmin && <button className="btn primary" onClick={() => setAdding('users')}><UserPlus size={16} /> {t('addMember')}</button>}
       </PageHead>
 
       <div className="card-title" style={{ marginTop: 4 }}>{t('members')}</div>
@@ -35,7 +42,7 @@ export function Team() {
         {[...users].sort((a, b) => Number(b === mine) - Number(a === mine)).map((u) => (
           <div key={u.id} className={u === mine ? 'card is-me' : 'card'} style={{ cursor: 'pointer' }} onClick={() => setOpenUser(u.id)}>
             <div className="row" style={{ flexWrap: 'nowrap', gap: 12 }}>
-              <Avatar name={dn(u.name) || String(u.email)} src={u === mine ? getPicture() : undefined} size={44} />
+              <Avatar name={dn(u.name) || String(u.email)} src={String(u.photo || '') || (u === mine ? getPicture() : undefined)} size={44} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: 16 }}>{dn(u.name) || '—'}{u === mine && <span className="you-tag">{t('you')}</span>}</div>
                 <div className="muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email || t('noEmail')}</div>
@@ -97,26 +104,41 @@ export function RolesPicker({ value, onChange }: { value: string; onChange: (v: 
 }
 
 function UserBody({ u, onClose }: { u: Row; onClose: () => void }) {
-  const { t } = useI18n();
+  const { t, v } = useI18n();
   const { update } = useStore();
   const dn = useDisplayName();
+  const rights = useProfileRights()(u);
   const s = (f: string) => String(u[f] ?? '');
-  const save = (f: string) => (v: string) => update('users', u, { [f]: v });
+  const save = (f: string) => (val: string) => update('users', u, { [f]: val });
+  const roles = s('taskRoles').split(',').map((r) => r.trim()).filter(Boolean);
   return (
     <>
-      <DrawerHead onClose={onClose}><h3>{dn(s('name')) || s('email')}</h3><div className="muted small">{s('email')}</div></DrawerHead>
+      <DrawerHead onClose={onClose}>
+        <h3>{dn(s('name')) || s('email')}{rights.own && <span className="you-tag">{t('you')}</span>}</h3>
+        <div className="muted small">{s('email')}</div>
+      </DrawerHead>
       <div className="drawer-body">
+        <PhotoPicker name={dn(s('name'))} value={s('photo') || (rights.own ? getPicture() : '')} editable={rights.profile}
+          onChange={(d) => update('users', u, { photo: d })} />
+        {!rights.profile && <div className="lock-note">🔒 {t('onlyOwner').replace('{name}', dn(s('name')) || s('email'))}</div>}
         <div className="fields">
-          <Field label={t('name')} value={s('name')} onSave={save('name')} />
-          <Field label={t('nameAr')} value={s('nameAr')} onSave={save('nameAr')} />
-          <Field label={t('email')} value={s('email')} onSave={save('email')} />
-          <Field label={t('teamRole')} type="select" options={['Student', 'Instructor']} translate value={s('teamRole')} onSave={save('teamRole')} />
-          <Field label={t('language')} type="select" options={['en', 'ar']} value={s('lang')} onSave={save('lang')} />
+          <Field label={t('name')} value={s('name')} onSave={save('name')} readOnly={!rights.profile} />
+          <Field label={t('nameAr')} value={s('nameAr')} onSave={save('nameAr')} readOnly={!rights.profile} />
+          <Field label={t('language')} type="select" options={['en', 'ar']} value={s('lang')} onSave={save('lang')} readOnly={!rights.profile} />
           <div className="full">
             <label className="lbl">{t('taskRoles')}</label>
-            <RolesPicker value={s('taskRoles')} onChange={save('taskRoles')} />
+            {rights.profile
+              ? <RolesPicker value={s('taskRoles')} onChange={save('taskRoles')} />
+              : <div className="row" style={{ gap: 6 }}>{roles.length ? roles.map((r) => <Chip key={r}>{r}</Chip>) : <span className="muted">—</span>}</div>}
           </div>
         </div>
+        <div className="card-title" style={{ marginTop: 22 }}>{t('members')}</div>
+        <div className="fields">
+          <Field label={t('email')} value={s('email')} onSave={save('email')} readOnly={!rights.access || rights.ownEmailLocked} />
+          <Field label={t('teamRole')} type="select" options={['Student', 'Instructor']} translate value={s('teamRole')}
+            onSave={save('teamRole')} readOnly={!rights.access} />
+        </div>
+        {!rights.access && <div className="muted small" style={{ marginTop: 8 }}>{t('accessAdmins')} ({v(s('teamRole') || 'Student')})</div>}
       </div>
     </>
   );

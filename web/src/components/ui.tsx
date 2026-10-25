@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useStore } from '../store';
+import { usePhotoOf, useStore } from '../store';
 import { STATUS_EMOJI, WS_COLOR, WS_SHORT, cls, initials, isoDate, parseDate } from '../util';
 
 export const STATUS_COLOR: Record<string, string> = {
@@ -40,6 +40,8 @@ export function PriorityChip({ p }: { p: string }) {
 }
 
 export function Avatar({ name, src, size = 30 }: { name: string; src?: string; size?: number }) {
+  const photoOf = usePhotoOf();
+  src = src || photoOf(name) || undefined;
   return (
     <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.4 }} title={name}>
       {src ? <img src={src} alt="" referrerPolicy="no-referrer" /> : initials(name)}

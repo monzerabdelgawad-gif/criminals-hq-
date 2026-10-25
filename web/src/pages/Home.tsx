@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, Flame, Skull, ArrowRight } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { getPicture, useDisplayName, useMyRow, useStore } from '../store';
+import { useDisplayName, useMyRow, useStore } from '../store';
 import { Avatar, Bar, Chip, Empty, Ring, StatusChip, WsChip } from '../components/ui';
 import { TaskDrawer } from '../components/TaskDrawer';
 import { DONE, WS_COLOR, daysBetween, isMine, isOverdue, parseDate, pct, today } from '../util';
@@ -52,7 +52,7 @@ export function Home({ go }: { go: (p: Page) => void }) {
         <div className="hero-grid">
           <div>
             <div className="hero-me">
-              <Avatar name={dn(me.name)} src={getPicture()} size={46} />
+              <Avatar name={dn(me.name)} size={46} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 700 }}>{greet}, <bdi>{dn(me.name)}</bdi> 👋</div>
                 <div className="row" style={{ gap: 5, marginTop: 4 }}>

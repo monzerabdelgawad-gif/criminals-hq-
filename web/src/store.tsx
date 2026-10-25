@@ -39,7 +39,9 @@ export function StoreProvider({ children, onSignOut }: { children: ReactNode; on
 
   const handleErr = useCallback((err: string) => {
     if (err === 'unauthorized') { signOut(); return; }
-    toast(err === 'network' ? t('offline') : `${t('error')}: ${err}`, 'err');
+    const known: Record<string, string> = { network: t('offline'), not_your_profile: t('notYourProfile'),
+      admin_only: t('adminOnly'), own_email: t('ownEmail'), bad_photo: t('badPhoto') };
+    toast(known[err] ?? `${t('error')}: ${err}`, 'err');
   }, [signOut, toast, t]);
 
   const refresh = useCallback(async () => {
@@ -143,11 +145,38 @@ export const getPicture = () => { try { return localStorage.getItem(PIC_KEY) || 
 
 /** The signed-in member's row in USERS (matched by email, then by name for demo data). */
 export function useMyRow(): Row | undefined {
-  const { all } = useStore();
+  const { all } = useStore() ?? {};
   if (!all) return undefined;
   const e = all.me.email.trim().toLowerCase();
   return all.data.users.find((u) => String(u.email).trim().toLowerCase() === e)
     ?? all.data.users.find((u) => String(u.name).trim().toLowerCase() === all.me.name.trim().toLowerCase());
+}
+
+/** Photo for a member, looked up by English or Arabic name (falls back to this device's Google photo for "me"). */
+export function usePhotoOf() {
+  const { all } = useStore() ?? {};
+  const mine = useMyRow();
+  return (name: unknown): string => {
+    if (!all) return '';
+    const n = String(name ?? '').trim().toLowerCase();
+    if (!n) return '';
+    const u = all.data.users.find((x) => String(x.name).trim().toLowerCase() === n || String(x.nameAr ?? '').trim().toLowerCase() === n);
+    const photo = String(u?.photo ?? '');
+    if (photo) return photo;
+    return u && u === mine ? getPicture() : '';
+  };
+}
+
+/** What the signed-in member may change on a USERS row (mirrors Code.gs -> userFieldBlocked_). */
+export function useProfileRights() {
+  const { all } = useStore();
+  return (row: Row | null | undefined) => {
+    const me = all?.me;
+    const email = String(row?.email ?? '').trim().toLowerCase();
+    const own = !!me && !!email && email === me.email.trim().toLowerCase();
+    const admin = !!me?.isAdmin;
+    return { own, admin, profile: own || (admin && !email), access: admin, ownEmailLocked: own };
+  };
 }
 
 /** Names are stored in English; in Arabic mode show the member's Arabic name (USERS -> Name (Arabic)). */

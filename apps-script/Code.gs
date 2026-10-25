@@ -64,6 +64,12 @@ function apiLogin_(body) {
   var user = findUser_(info.email);
   if (!user) return { ok: false, error: 'not_allowed', email: info.email };
 
+  // first sign-in: use the Google profile photo until the member uploads their own
+  if (!user.photo && /^https:\/\/lh\d\.googleusercontent\.com\//.test(info.picture || '')) {
+    setOwnPhoto_(user, info.picture);
+    user.photo = info.picture;
+  }
+
   var payload = { e: user.email, x: Date.now() + SESSION_DAYS * 864e5 };
   return { ok: true, token: sign_(payload), user: user, picture: info.picture || '' };
 }
@@ -99,7 +105,9 @@ function findUser_(email) {
         nameAr: u.nameAr || '',
         teamRole: u.teamRole || 'Student',
         taskRoles: String(u.taskRoles || '').split(',').map(function (s) { return s.trim(); }).filter(String),
-        lang: u.lang || 'en'
+        lang: u.lang || 'en',
+        photo: u.photo || '',
+        isAdmin: isAdmin_(e, u.teamRole)
       };
     }
   }
@@ -200,6 +208,13 @@ function apiUpdate_(user, body) {
     var idx = findRowIndex_(def, vals, body.id);
     if (idx < 0) return { ok: false, error: 'not_found' };
 
+    if (body.entity === 'users') {
+      for (var p = 0; p < changes.length; p++) {
+        var why = userFieldBlocked_(user, vals[idx][0], changes[p]);
+        if (why) return { ok: false, error: why, field: changes[p].field };
+      }
+    }
+
     var conflicts = [];
     for (var i = 0; i < changes.length; i++) {
       var c = changes[i];
@@ -242,7 +257,9 @@ function apiAdd_(user, body) {
   if (!def || ['tasks', 'milestones', 'risks', 'team', 'resources', 'users'].indexOf(body.entity) < 0) {
     return { ok: false, error: 'bad_entity' };
   }
+  if (body.entity === 'users' && !user.isAdmin) return { ok: false, error: 'admin_only' };
   var values = body.values || {};
+  if (body.entity === 'users') delete values.photo;
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -348,8 +365,73 @@ function today_() {
 function log_(ss, user, entity, id, field, oldV, newV) {
   var sh = ss.getSheetByName(TABS.LOG);
   if (!sh) return;
+  if (field === 'photo') { oldV = oldV ? '(photo)' : ''; newV = newV ? '(new photo)' : '(removed)'; }
   sh.appendRow([new Date(), user.name, user.email, entity, id, field,
     String(oldV == null ? '' : oldV), String(newV == null ? '' : newV)]);
+}
+
+/* ---------------- profiles & permissions ---------------- */
+
+var PROFILE_FIELDS_ = ['name', 'nameAr', 'taskRoles', 'lang', 'photo']; // only the member themselves
+var ACCESS_FIELDS_ = ['email', 'teamRole'];                            // only admins
+var MAX_PHOTO_CHARS_ = 45000; // a cell holds 50,000 characters
+
+/** Admins = instructors + the sheet owner (the account the script runs as). */
+function isAdmin_(email, teamRole) {
+  if (String(teamRole) === 'Instructor') return true;
+  var owner = '';
+  try { owner = String(Session.getEffectiveUser().getEmail() || '').toLowerCase(); } catch (e) { /* */ }
+  return !!owner && owner === String(email).toLowerCase();
+}
+
+/** Returns an error code if this user may not make this change to this USERS row, else ''. */
+function userFieldBlocked_(user, rowEmail, change) {
+  var own = norm_(rowEmail) !== '' && norm_(rowEmail) === norm_(user.email);
+  var f = change.field;
+  if (ACCESS_FIELDS_.indexOf(f) >= 0) {
+    if (!user.isAdmin) return 'admin_only';
+    if (own && f === 'email') return 'own_email'; // don't lock yourself out
+    return '';
+  }
+  if (PROFILE_FIELDS_.indexOf(f) >= 0) {
+    // admins may fill in profiles of members who haven't joined yet (no email)
+    if (!own && !(user.isAdmin && norm_(rowEmail) === '')) return 'not_your_profile';
+    if (f === 'photo' && !validPhoto_(change.value)) return 'bad_photo';
+    return '';
+  }
+  return 'read_only';
+}
+
+function validPhoto_(v) {
+  v = String(v || '');
+  if (v === '') return true;
+  if (v.length > MAX_PHOTO_CHARS_) return false;
+  return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(v) ||
+    /^https:\/\/lh\d\.googleusercontent\.com\/[^\s"'<>]+$/.test(v);
+}
+
+function setOwnPhoto_(user, url) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return;
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var def = ENTITIES.users;
+    var sh = ss.getSheetByName(def.tab);
+    var vals = sh.getDataRange().getDisplayValues();
+    var loc = locate_(def, vals);
+    if (!loc) return;
+    var col = def.fields.indexOf('photo') + 1;
+    if (sh.getRange(1, col).getValue() === '') sh.getRange(1, col).setValue('Photo');
+    for (var r = loc.start; r < loc.end; r++) {
+      if (norm_(vals[r][0]) === norm_(user.email)) {
+        sh.getRange(r + 1, col).setNumberFormat('@').setValue(url);
+        bumpRev_();
+        return;
+      }
+    }
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /* ---------------- uploads ---------------- */

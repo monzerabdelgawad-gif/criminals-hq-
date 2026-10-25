@@ -11,6 +11,8 @@ export interface Me {
   teamRole: string;
   taskRoles: string[];
   lang: string;
+  photo?: string;
+  isAdmin?: boolean;
 }
 
 export interface LogEntry {

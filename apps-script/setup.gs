@@ -234,7 +234,7 @@ function fixRisks_(ss) {
 }
 
 function createTabs_(ss) {
-  ensureTab_(ss, TABS.USERS, ['Email', 'Name', 'Name (Arabic)', 'Team Role', 'Task Roles', 'Language'], [180, 140, 140, 110, 260, 90]);
+  ensureTab_(ss, TABS.USERS, ['Email', 'Name', 'Name (Arabic)', 'Team Role', 'Task Roles', 'Language', 'Photo'], [180, 140, 140, 110, 260, 90, 120]);
   ensureTab_(ss, TABS.LOG, ['Timestamp', 'Name', 'Email', 'Entity', 'ID', 'Field', 'Old Value', 'New Value'],
     [150, 120, 180, 100, 80, 130, 220, 220]);
   ensureTab_(ss, TABS.UPLOADS, ['Timestamp', 'Name', 'Email', 'File Name', 'URL', 'Folder', 'Task ID', 'Note', 'Size'],

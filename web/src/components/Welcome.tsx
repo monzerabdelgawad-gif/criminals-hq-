@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useI18n } from '../i18n';
 import { getPicture, useDisplayName, useMyRow, useStore } from '../store';
+import { PhotoPicker } from './PhotoPicker';
 import { RolesPicker } from '../pages/Team';
 import { Avatar, Chip } from './ui';
 
@@ -43,7 +44,9 @@ export function Welcome() {
             animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }} exit={{ opacity: 0, scale: 0.96, x: '-50%', y: '-48%' }}>
             <div className="welcome-head">
               <motion.div initial={{ scale: 0.6, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}>
-                <Avatar name={dn(me.name)} src={getPicture()} size={84} />
+                {mine
+                  ? <PhotoPicker name={dn(me.name)} value={String(mine.photo || '') || getPicture()} editable onChange={(d) => update('users', mine, { photo: d })} />
+                  : <Avatar name={dn(me.name)} size={84} />}
               </motion.div>
               <div className="muted small" style={{ fontWeight: 600, marginTop: 14 }}>{t('welcomeTitle')} 🔴</div>
               <h2 className="welcome-name"><bdi>{dn(me.name)}</bdi></h2>
