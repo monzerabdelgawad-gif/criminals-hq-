@@ -322,6 +322,10 @@ function apiAdd_(user, body) {
       writeCell_(sh.getRange(sheetRow, def.fields.indexOf(def.stamp.date) + 1), def, def.stamp.date, today_());
       writeCell_(sh.getRange(sheetRow, def.fields.indexOf(def.stamp.by) + 1), def, def.stamp.by, user.name);
     }
+    // the first meeting row is inserted right under the header and copies its dark style: reset it
+    if (body.entity === 'meetings') {
+      sh.getRange(sheetRow, 1, 1, def.fields.length).setFontWeight('normal').setFontColor(null).setBackground(null);
+    }
     var newId = def.keyMode === 'id' ? values.id : 'r' + sheetRow;
     log_(ss, user, body.entity, newId, '(new row)', '', values.task || values.name || values.description || values.email || '');
     SpreadsheetApp.flush();
