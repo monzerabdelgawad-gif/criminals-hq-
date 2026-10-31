@@ -188,11 +188,12 @@ function build(): AllData {
       ['WEEKLY MAINTENANCE', ''],
       ['Each training session', 'Update Status for tasks worked on. Add Actual Start / Actual Completion dates. Note any blockers.'],
     ],
+    folders: DEMO_FOLDERS,
     folderUrl: 'https://drive.google.com',
   };
 }
 
-const KEY = 'criminals.demo.v4';
+const KEY = 'criminals.demo.v5';
 function load(): AllData {
   try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch { /* ignore */ }
   return build();
@@ -275,10 +276,11 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
       db.rev++; save(db);
       return { ok: true, row };
     }
+    case 'folders': return { ok: true, folders: DEMO_FOLDERS };
     case 'upload': {
       if (!canEditDemo(me, 'uploads')) return { ok: false, error: 'no_permission' };
       db.uploads.unshift({ timestamp: now, name: me.name, email: me.email, fileName: String(body.fileName), url: '#',
-        folder: String(body.workstream || '(root)'), taskId: String(body.taskId || ''), note: String(body.note || ''), size: '—' });
+        folder: body.folderId ? (DEMO_FOLDERS.find((f) => f.id === body.folderId)?.path || '(root)') : String(body.workstream || '(root)'), taskId: String(body.taskId || ''), note: String(body.note || ''), size: '—' });
       db.rev++; save(db);
       return { ok: true, url: '#' };
     }
@@ -293,6 +295,11 @@ function canEditDemo(me: AllData['me'], entity: string) {
     resources: 'resources', settings: 'settings', team: 'settings', uploads: 'uploads' };
   return (me.perms ?? []).includes(sec[entity]);
 }
+
+const DEMO_FOLDERS = [
+  { id: 'root', path: '' }, { id: 'f-ip', path: 'Innovation Project' }, { id: 'f-ip-res', path: 'Innovation Project / Research' },
+  { id: 'f-rd', path: 'Robot Design' }, { id: 'f-photos', path: 'Photos & Videos' },
+];
 
 /** Three sample meetings around today: one done (with minutes), one later today, one next week. */
 function demoMeetings(): Row[] {

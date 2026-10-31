@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
-import { ExternalLink, FolderOpen, Plus, UploadCloud, FileText } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ExternalLink, FolderOpen, Plus, RefreshCw, UploadCloud, FileText } from 'lucide-react';
 import { useI18n, type Lang } from '../i18n';
 import { useCan, useDisplayName, useStore } from '../store';
+import { call } from '../api';
 import type { Row } from '../types';
 import { MAX_UPLOAD_MB } from '../config';
 import { Avatar, Drawer, DrawerHead, Empty, Field, Locked, Modal, PageHead, WsChip } from '../components/ui';
@@ -9,12 +10,24 @@ import { cls } from '../util';
 
 /* ---------------- Uploads ---------------- */
 export function Uploads() {
-  const { t, v } = useI18n();
-  const { all, upload, busy } = useStore();
+  const { t } = useI18n();
+  const { all, upload, busy, toast } = useStore();
   const dn = useDisplayName();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const [ws, setWs] = useState('');
+  // folders come straight from Drive ("criminals docs" + every folder inside it)
+  const [folders, setFolders] = useState(all!.folders ?? []);
+  useEffect(() => { if (all?.folders) setFolders(all.folders); }, [all?.folders]);
+  const [folderId, setFolderId] = useState(() => { try { return localStorage.getItem('criminals.uploadFolder') || ''; } catch { return ''; } });
+  const chosen = folders.find((f) => f.id === folderId) ?? folders[0];
+  const pickFolder = (id: string) => { setFolderId(id); try { localStorage.setItem('criminals.uploadFolder', id); } catch { /* */ } };
+  const [loadingFolders, setLoadingFolders] = useState(false);
+  const reloadFolders = async () => {
+    setLoadingFolders(true);
+    const r = await call<{ folders: { id: string; path: string }[] }>('folders');
+    setLoadingFolders(false);
+    if (r.ok) setFolders(r.folders); else toast(`${t('error')}: ${r.error}`, 'err');
+  };
   const [taskId, setTaskId] = useState('');
   const [note, setNote] = useState('');
   const [progress, setProgress] = useState<string | null>(null);
@@ -28,11 +41,12 @@ export function Uploads() {
     setBig(list.filter((f) => f.size > limit));
     for (const f of list.filter((x) => x.size <= limit)) {
       setProgress(`${t('uploading')} ${f.name}`);
-      await upload(f, { workstream: ws || t('general'), taskId, note });
+      await upload(f, chosen ? { folderId: chosen.id, taskId, note } : { workstream: t('general'), taskId, note });
     }
     setProgress(null); setNote('');
   };
-  const tasks = all!.data.tasks.filter((x) => !ws || x.workstream === ws);
+  const tasks = all!.data.tasks;
+  const label = (p: string) => (p ? `📁 ${p}` : `📁 ${t('mainFolder')}`);
 
   return (
     <Locked section="uploads"><div>
@@ -65,10 +79,16 @@ export function Uploads() {
           <div className="fields" style={{ marginTop: 16 }}>
             <div>
               <label className="lbl">{t('uploadTo')}</label>
-              <select className="select" value={ws} onChange={(e) => { setWs(e.target.value); setTaskId(''); }}>
-                <option value="">{t('general')}</option>
-                {(all!.dropdowns.Workstreams ?? []).map((w) => <option key={w} value={w}>{v(w)}</option>)}
-              </select>
+              <div className="row" style={{ flexWrap: 'nowrap', gap: 6 }}>
+                <select className="select" value={chosen?.id ?? ''} onChange={(e) => pickFolder(e.target.value)} disabled={!folders.length}>
+                  {!folders.length && <option value="">{t('general')}</option>}
+                  {folders.map((f) => <option key={f.id} value={f.id}>{label(f.path)}</option>)}
+                </select>
+                <button type="button" className="btn icon" onClick={reloadFolders} disabled={loadingFolders} title={t('refreshFolders')} aria-label={t('refreshFolders')}>
+                  <RefreshCw size={15} className={loadingFolders ? 'spin' : undefined} />
+                </button>
+              </div>
+              <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>{t('folderHint')}</div>
             </div>
             <div>
               <label className="lbl">{t('linkTask')}</label>

@@ -37,6 +37,8 @@ export interface AllData {
   folderUrl: string;
   /** emails with admin rights besides instructors (sheet owner + ADMIN_EMAILS) */
   admins?: string[];
+  /** folders inside the uploads folder; path '' = the main folder */
+  folders?: { id: string; path: string }[];
 }
 
 export interface Change { field: string; value: string; expected?: string }

@@ -435,3 +435,5 @@ html[dir='rtl'] .meet-title { font-family: 'Cairo', sans-serif; font-weight: 900
   background: color-mix(in srgb, var(--heist-red) 9%, transparent); border: 1px solid color-mix(in srgb, var(--heist-red) 28%, transparent); }
 .meet-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meet-link:hover { background: color-mix(in srgb, var(--heist-red) 16%, transparent); }
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

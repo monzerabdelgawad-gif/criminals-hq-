@@ -36,6 +36,7 @@ function doPost(e) {
       case 'update': return json_(apiUpdate_(user, body));
       case 'add': return json_(apiAdd_(user, body));
       case 'upload': return json_(apiUpload_(user, body));
+      case 'folders': return json_({ ok: true, folders: listFolders_(true) });
       default: return json_({ ok: false, error: 'unknown_action' });
     }
   } catch (err) {
@@ -132,7 +133,8 @@ function apiGetAll_(user) {
     uploads: readLog_(ss, TABS.UPLOADS, 200),
     guide: readGuide_(ss),
     folderUrl: folderId ? 'https://drive.google.com/drive/folders/' + folderId : '',
-    admins: adminEmails_()
+    admins: adminEmails_(),
+    folders: safeFolders_()
   };
 }
 
@@ -428,6 +430,49 @@ function log_(ss, user, entity, id, field, oldV, newV) {
     String(oldV == null ? '' : oldV), String(newV == null ? '' : newV)]);
 }
 
+/* ---------------- upload folders ---------------- */
+
+/**
+ * Every folder inside the uploads folder ("criminals docs"), with its path, e.g.
+ * [{id, path: ''}, {id, path: 'Robot Design'}, {id, path: 'Robot Design / CAD'}].
+ * Cached 10 min (walking Drive is slow); refresh=true rebuilds it.
+ */
+function listFolders_(refresh) {
+  var cache = CacheService.getScriptCache();
+  if (!refresh) {
+    var hit = cache.get('FOLDERS');
+    if (hit) return JSON.parse(hit);
+  }
+  var rootId = props_().getProperty('DRIVE_FOLDER_ID');
+  if (!rootId) return [];
+  var out = [{ id: rootId, path: '' }];
+  var walk = function (folder, path, depth) {
+    if (depth > 4 || out.length >= 300) return;
+    var subs = [];
+    var it = folder.getFolders();
+    while (it.hasNext()) subs.push(it.next());
+    subs.sort(function (a, b) { return a.getName().localeCompare(b.getName()); });
+    subs.forEach(function (f) {
+      var p = path ? path + ' / ' + f.getName() : f.getName();
+      out.push({ id: f.getId(), path: p });
+      walk(f, p, depth + 1);
+    });
+  };
+  walk(DriveApp.getFolderById(rootId), '', 1);
+  try { cache.put('FOLDERS', JSON.stringify(out), 600); } catch (e) { /* too big to cache: fine */ }
+  return out;
+}
+
+function safeFolders_() {
+  try { return listFolders_(false); } catch (e) { console.error(e); return []; }
+}
+
+function findFolder_(id, refresh) {
+  var list = listFolders_(refresh);
+  for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+  return null;
+}
+
 /* ---------------- profiles & permissions ---------------- */
 
 var PROFILE_FIELDS_ = ['name', 'nameAr', 'taskRoles', 'lang', 'photo']; // only the member themselves
@@ -540,9 +585,16 @@ function apiUpload_(user, body) {
   var root = DriveApp.getFolderById(folderId);
   var folder = root;
   var sub = String(body.workstream || '').trim();
-  if (sub) {
+  if (body.folderId) {
+    // chosen folder: must be "criminals docs" itself or a folder inside it
+    var pick = findFolder_(String(body.folderId), false) || findFolder_(String(body.folderId), true);
+    if (!pick) return { ok: false, error: 'bad_folder' };
+    folder = DriveApp.getFolderById(pick.id);
+    sub = pick.path;
+  } else if (sub) {
     var it = root.getFoldersByName(sub);
     folder = it.hasNext() ? it.next() : root.createFolder(sub);
+    CacheService.getScriptCache().remove('FOLDERS');
   }
   var blob = Utilities.newBlob(bytes, body.mimeType || 'application/octet-stream', body.fileName);
   var file = folder.createFile(blob);

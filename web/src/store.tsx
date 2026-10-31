@@ -13,7 +13,7 @@ interface Store {
   refresh: () => Promise<void>;
   update: (entity: Entity, row: Row, changes: Record<string, string>) => Promise<boolean>;
   add: (entity: Entity, values: Record<string, string>) => Promise<Row | null>;
-  upload: (file: File, opts: { workstream?: string; taskId?: string; note?: string }) => Promise<boolean>;
+  upload: (file: File, opts: { workstream?: string; folderId?: string; taskId?: string; note?: string }) => Promise<boolean>;
   toast: (text: string, kind?: Toast['kind']) => void;
   toasts: Toast[];
   signOut: () => void;
@@ -40,7 +40,7 @@ export function StoreProvider({ children, onSignOut }: { children: ReactNode; on
   const handleErr = useCallback((err: string) => {
     if (err === 'unauthorized') { signOut(); return; }
     const known: Record<string, string> = { network: t('offline'), not_your_profile: t('notYourProfile'),
-      admin_only: t('adminOnly'), own_email: t('ownEmail'), bad_photo: t('badPhoto'), no_permission: t('noPermission') };
+      admin_only: t('adminOnly'), own_email: t('ownEmail'), bad_photo: t('badPhoto'), no_permission: t('noPermission'), bad_folder: t('badFolder') };
     toast(known[err] ?? `${t('error')}: ${err}`, 'err');
   }, [signOut, toast, t]);
 
@@ -118,7 +118,7 @@ export function StoreProvider({ children, onSignOut }: { children: ReactNode; on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleErr, toast, t]);
 
-  const upload = useCallback(async (file: File, opts: { workstream?: string; taskId?: string; note?: string }) => {
+  const upload = useCallback(async (file: File, opts: { workstream?: string; folderId?: string; taskId?: string; note?: string }) => {
     if (file.size > MAX_UPLOAD_MB * 1024 * 1024) { toast(t('tooBig'), 'err'); return false; }
     setBusy(true);
     const data = await fileToBase64(file);
