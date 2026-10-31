@@ -168,6 +168,7 @@ function build(): AllData {
       ],
       users: TEAM.map(([name, nameAr, role], i) => ({ _row: i + 2, id: 'r' + (i + 2), email: i === 0 ? 'demo@criminals.team' : i === 1 ? 'arwa@example.com' : i === 10 ? 'ziad@example.com' : '',
         name, nameAr, teamRole: role, taskRoles: '', lang: 'ar', photo: '', perms: i === 1 ? 'tasks, uploads' : '' })),
+      meetings: demoMeetings(),
     },
     dropdowns: {
       Workstreams: Object.values(WS),
@@ -191,7 +192,7 @@ function build(): AllData {
   };
 }
 
-const KEY = 'criminals.demo.v3';
+const KEY = 'criminals.demo.v4';
 function load(): AllData {
   try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch { /* ignore */ }
   return build();
@@ -262,8 +263,9 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
         const n = Math.max(0, ...rows.filter((r) => r.id.startsWith(p)).map((r) => Number(r.id.split('-')[1]))) + 1;
         Object.assign(row, { id: `${p}-${String(n).padStart(2, '0')}`, status: 'Not Started', completion: '0', review: 'Not Reviewed', lastUpdated: fmt(new Date()), updatedBy: me.name });
       }
-      if (entity === 'risks' || entity === 'milestones') {
-        const p = entity === 'risks' ? 'R' : 'M';
+      if (entity === 'meetings') Object.assign(row, { status: 'Scheduled', createdBy: me.name, date: toDisplay(values.date || '') });
+      if (entity === 'risks' || entity === 'milestones' || entity === 'meetings') {
+        const p = entity === 'risks' ? 'R' : entity === 'meetings' ? 'MT' : 'M';
         const n = Math.max(0, ...rows.map((r) => Number(String(r.id).split('-')[1]) || 0)) + 1;
         row.id = `${p}-${String(n).padStart(2, '0')}`;
         if (entity === 'risks') row.score = String(Number(values.likelihood || 0) * Number(values.impact || 0));
@@ -290,6 +292,21 @@ function canEditDemo(me: AllData['me'], entity: string) {
   const sec: Record<string, string> = { tasks: 'tasks', milestones: 'milestones', risks: 'risks', weekly: 'weekly', weeklyQ: 'weekly',
     resources: 'resources', settings: 'settings', team: 'settings', uploads: 'uploads' };
   return (me.perms ?? []).includes(sec[entity]);
+}
+
+/** Three sample meetings around today: one done (with minutes), one later today, one next week. */
+function demoMeetings(): Row[] {
+  const d = (days: number) => { const x = new Date(); x.setDate(x.getDate() + days); return fmt(x); };
+  const inTwoHours = new Date(Date.now() + 2 * 3600e3);
+  const hhmm = `${String(inTwoHours.getHours()).padStart(2, '0')}:00`;
+  return [
+    { _row: 2, id: 'MT-01', title: 'Season kickoff', date: d(-6), time: '18:00', duration: '60', link: 'https://meet.google.com/abc-defg-hij',
+      location: 'Online', agenda: 'Roles, season calendar, BIOGLOW theme', notes: 'Roles assigned. Next: research sprint.', status: 'Done', createdBy: 'Eng. Ziad', remindersSent: 'morning,hour,start' },
+    { _row: 3, id: 'MT-02', title: 'Robot game strategy', date: d(0), time: hhmm, duration: '90', link: 'https://meet.google.com/xyz-uvwx-rst',
+      location: 'Lab', agenda: '1. Mission priorities · 2. Attachment ideas · 3. Run order', notes: '', status: 'Scheduled', createdBy: 'Eng. Ziad', remindersSent: 'morning' },
+    { _row: 4, id: 'MT-03', title: 'Innovation project review', date: d(7), time: '17:30', duration: '60', link: '',
+      location: 'Lab', agenda: 'Problem statement + research evidence', notes: '', status: 'Scheduled', createdBy: 'Eng. Ahmed Tarek', remindersSent: '' },
+  ];
 }
 
 function toDisplay(v: string) {

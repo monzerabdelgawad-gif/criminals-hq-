@@ -411,3 +411,22 @@ html[dir='rtl'] .nav-item.active { box-shadow: var(--hi), inset -3px 0 0 var(--h
 .chip { border-radius: 6px; }
 .btn.primary { box-shadow: 0 10px 30px -12px var(--heist-red); }
 .blob.b3 { opacity: 0.05; }
+
+/* ---------- meetings ---------- */
+.meet-hero { cursor: pointer; padding: 22px; }
+.meet-title { font-family: var(--font-hero); font-weight: 400; text-transform: uppercase; font-size: 40px; line-height: 1; letter-spacing: 0.01em; margin: 10px 0 8px; }
+html[dir='rtl'] .meet-title { font-family: 'Cairo', sans-serif; font-weight: 900; text-transform: none; line-height: 1.25; }
+.meet-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--text-2); font-size: 13px; margin-top: 4px; }
+.meet-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.meet-agenda { margin-top: 12px; color: var(--text-2); white-space: pre-wrap; line-height: 1.6; max-height: 4.8em; overflow: hidden; }
+.meet-row { display: flex; align-items: center; gap: 14px; cursor: pointer; }
+.meet-row.past { opacity: 0.72; }
+.meet-date { width: 54px; flex: none; text-align: center; }
+.meet-date .d { font-family: var(--font-hero); font-size: 30px; line-height: 1; }
+.meet-date .m { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-3); }
+.count-pill, .live-pill { display: inline-block; padding: 4px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.count-pill { background: var(--glass-2); border: 1px solid var(--stroke); color: var(--text); }
+.live-pill { background: var(--heist-red); color: #fff; animation: pulse 1.6s ease-in-out infinite; }
+.meet-strip { display: flex; align-items: center; gap: 14px; cursor: pointer; padding: 14px 16px; }
+.meet-strip-ic { color: var(--accent-2); flex: none; }
+.meet-strip.live { box-shadow: 0 0 0 1.5px var(--heist-red), var(--shadow); }

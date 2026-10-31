@@ -154,19 +154,20 @@ export function useMyRow(): Row | undefined {
 
 /** Sections with their own edit switch (must match SECTIONS_ in Code.gs). */
 export const SECTIONS = ['tasks', 'milestones', 'risks', 'weekly', 'uploads', 'resources', 'settings'] as const;
-export type Section = typeof SECTIONS[number];
+/** 'meetings' has no switch: only coaches / admins edit it. */
+export type Section = typeof SECTIONS[number] | 'meetings';
 
 /** Can the signed-in member edit this section? Admins always can; everyone can always read. */
 export function useCan() {
   const { all } = useStore() ?? {};
-  return (sec: Section) => !!all && (!!all.me.isAdmin || (all.me.perms ?? []).includes(sec));
+  return (sec: Section) => !!all && (!!all.me.isAdmin || (sec !== 'meetings' && (all.me.perms ?? []).includes(sec)));
 }
 
 /** Parse the USERS "Permissions" cell ("all" or "tasks, uploads"). */
-export function parsePerms(v: unknown): Section[] {
+export function parsePerms(v: unknown): typeof SECTIONS[number][] {
   const s = String(v ?? '').toLowerCase().trim();
   if (s === 'all') return [...SECTIONS];
-  return s.split(',').map((x) => x.trim()).filter((x): x is Section => (SECTIONS as readonly string[]).includes(x));
+  return s.split(',').map((x) => x.trim()).filter((x): x is typeof SECTIONS[number] => (SECTIONS as readonly string[]).includes(x));
 }
 
 /** Photo for a member, looked up by English or Arabic name (falls back to this device's Google photo for "me"). */

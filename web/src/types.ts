@@ -2,7 +2,7 @@ export type Row = { _row: number; id: string; [field: string]: string | number }
 
 export type Entity =
   | 'tasks' | 'milestones' | 'risks' | 'weekly' | 'weeklyQ'
-  | 'settings' | 'team' | 'resources' | 'users';
+  | 'settings' | 'team' | 'resources' | 'users' | 'meetings';
 
 export interface Me {
   email: string;

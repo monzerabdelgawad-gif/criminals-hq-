@@ -244,6 +244,10 @@ function apiUpdate_(user, body) {
       writeCell_(sh.getRange(sheetRow, def.fields.indexOf(def.stamp.date) + 1), def, def.stamp.date, today_());
       writeCell_(sh.getRange(sheetRow, def.fields.indexOf(def.stamp.by) + 1), def, def.stamp.by, user.name);
     }
+    // a rescheduled meeting gets its reminders again
+    if (body.entity === 'meetings' && changes.some(function (c) { return c.field === 'date' || c.field === 'time'; })) {
+      sh.getRange(sheetRow, def.fields.indexOf('remindersSent') + 1).clearContent();
+    }
     SpreadsheetApp.flush();
     bumpRev_();
     var fresh = sh.getRange(sheetRow, 1, 1, def.fields.length).getDisplayValues()[0];
@@ -256,13 +260,18 @@ function apiUpdate_(user, body) {
 /** body: { entity, values: {field: value} } -> appends a new row (new ID generated for id-tables). */
 function apiAdd_(user, body) {
   var def = ENTITIES[body.entity];
-  if (!def || ['tasks', 'milestones', 'risks', 'team', 'resources', 'users'].indexOf(body.entity) < 0) {
+  if (!def || ['tasks', 'milestones', 'risks', 'team', 'resources', 'users', 'meetings'].indexOf(body.entity) < 0) {
     return { ok: false, error: 'bad_entity' };
   }
   if (body.entity === 'users' && !user.isAdmin) return { ok: false, error: 'admin_only' };
   if (body.entity !== 'users' && !canEdit_(user, body.entity)) return { ok: false, error: 'no_permission' };
   var values = body.values || {};
   if (body.entity === 'users') delete values.photo;
+  if (body.entity === 'meetings') {
+    ensureMeetingsTab_();
+    if (!values.status) values.status = 'Scheduled';
+    values.createdBy = user.name;
+  }
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -324,7 +333,7 @@ function apiAdd_(user, body) {
 }
 
 function nextId_(entity, vals, loc, values) {
-  var prefix = entity === 'milestones' ? 'M' : entity === 'risks' ? 'R' : (ID_PREFIX[values.workstream] || 'OP');
+  var prefix = entity === 'milestones' ? 'M' : entity === 'risks' ? 'R' : entity === 'meetings' ? 'MT' : (ID_PREFIX[values.workstream] || 'OP');
   var max = 0;
   for (var r = loc.start; r < loc.end; r++) {
     var m = String(vals[r][0]).match(new RegExp('^' + prefix + '-(\\d+)$'));
@@ -396,6 +405,7 @@ function parsePerms_(v) {
 
 function canEdit_(user, entityOrSection) {
   if (user.isAdmin) return true;
+  if (entityOrSection === 'meetings') return false; // coaches / admins only
   var sec = ENTITY_SECTION_[entityOrSection];
   return !!sec && (user.perms || []).indexOf(sec) >= 0;
 }

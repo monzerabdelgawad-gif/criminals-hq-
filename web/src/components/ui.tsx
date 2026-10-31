@@ -121,7 +121,7 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
   );
 }
 
-type FieldType = 'text' | 'textarea' | 'select' | 'date' | 'number';
+type FieldType = 'text' | 'textarea' | 'select' | 'date' | 'number' | 'time';
 
 /** True inside a section the member can only read: every Field below switches to the reading layout. */
 const ReadingCtx = createContext(false);
@@ -185,6 +185,8 @@ export function Field({ label, value, onSave, type = 'text', options, readOnly, 
     input = (
       <input className="input" type="date" value={d ? isoDate(d) : ''} onChange={(e) => { setVal(e.target.value); commit(e.target.value); }} />
     );
+  } else if (type === 'time') {
+    input = <input className="input" type="time" value={val} onChange={(e) => setVal(e.target.value)} onBlur={() => commit(val)} />;
   } else if (type === 'textarea') {
     input = <textarea className="textarea" value={val} placeholder={placeholder}
       onChange={(e) => { setVal(e.target.value); if (live) onSave?.(e.target.value); }} onBlur={() => commit(val)} />;

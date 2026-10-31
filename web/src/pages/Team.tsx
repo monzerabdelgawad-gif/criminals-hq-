@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { SECTIONS, getPicture, parsePerms, useCan, useDisplayName, useMyRow, useProfileRights, useStore, type Section } from '../store';
+import { SECTIONS, getPicture, parsePerms, useCan, useDisplayName, useMyRow, useProfileRights, useStore } from '../store';
+type Section = typeof SECTIONS[number];
 import { PhotoPicker } from '../components/PhotoPicker';
 import type { Row } from '../types';
 import { Avatar, Chip, Drawer, DrawerHead, Empty, Field, Locked, Modal, PageHead } from '../components/ui';

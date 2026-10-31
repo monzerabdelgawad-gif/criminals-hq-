@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Activity as ActivityIcon, BookOpen, CalendarRange, Flag, Home as HomeIcon, Languages, Link2, ListChecks,
+  Activity as ActivityIcon, BookOpen, CalendarClock, CalendarRange, Flag, Home as HomeIcon, Languages, Link2, ListChecks,
   LogOut, Menu, Moon, NotebookPen, ShieldAlert, Sun, UploadCloud, Users, Settings as SettingsIcon,
 } from 'lucide-react';
 import { getToken } from './api';
@@ -21,13 +21,15 @@ import { Milestones } from './pages/Milestones';
 import { Risks } from './pages/Risks';
 import { Weekly } from './pages/Weekly';
 import { Team } from './pages/Team';
+import { Meetings } from './pages/Meetings';
 import { Activity, Guide, Resources, Settings, Uploads } from './pages/Other';
 import { cls, isOverdue } from './util';
 
-export type Page = 'home' | 'tasks' | 'timeline' | 'milestones' | 'risks' | 'weekly' | 'team' | 'uploads' | 'activity' | 'resources' | 'guide' | 'settings';
+export type Page = 'home' | 'meetings' | 'tasks' | 'timeline' | 'milestones' | 'risks' | 'weekly' | 'team' | 'uploads' | 'activity' | 'resources' | 'guide' | 'settings';
 
 const NAV: { id: Page; icon: ReactNode; key: TKey }[] = [
   { id: 'home', icon: <HomeIcon size={18} />, key: 'home' },
+  { id: 'meetings', icon: <CalendarClock size={18} />, key: 'meetings' },
   { id: 'tasks', icon: <ListChecks size={18} />, key: 'tasks' },
   { id: 'timeline', icon: <CalendarRange size={18} />, key: 'timeline' },
   { id: 'milestones', icon: <Flag size={18} />, key: 'milestones' },
@@ -40,7 +42,7 @@ const NAV: { id: Page; icon: ReactNode; key: TKey }[] = [
   { id: 'guide', icon: <BookOpen size={18} />, key: 'guide' },
   { id: 'settings', icon: <SettingsIcon size={18} />, key: 'settings' },
 ];
-const MOBILE_TABS: Page[] = ['home', 'tasks', 'uploads', 'weekly'];
+const MOBILE_TABS: Page[] = ['home', 'meetings', 'tasks', 'uploads'];
 
 const readHash = (): Page => {
   const h = location.hash.replace('#/', '') as Page;
@@ -111,7 +113,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
 
   const blockedCount = all.data.tasks.filter((x) => x.status === 'Blocked' || isOverdue(x)).length;
   const pages: Record<Page, ReactNode> = {
-    home: <Home go={go} />, tasks: <Tasks />, timeline: <Timeline />, milestones: <Milestones />, risks: <Risks />,
+    home: <Home go={go} />, meetings: <Meetings />, tasks: <Tasks />, timeline: <Timeline />, milestones: <Milestones />, risks: <Risks />,
     weekly: <Weekly />, team: <Team />, uploads: <Uploads />, activity: <Activity />, resources: <Resources />,
     guide: <Guide />, settings: <Settings theme={theme} setTheme={setTheme} />,
   };
@@ -126,7 +128,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
           </div>
           {NAV.map((n, i) => (
             <div key={n.id}>
-              {(i === 6 || i === 9) && <div className="nav-sep" />}
+              {(i === 7 || i === 10) && <div className="nav-sep" />}
               <button className={cls('nav-item', page === n.id && 'active')} onClick={() => go(n.id)}>
                 {n.icon} {t(n.key)}
                 {n.id === 'tasks' && blockedCount > 0 && <span className="count">{blockedCount}</span>}

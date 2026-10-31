@@ -5,6 +5,7 @@ import { useI18n } from '../i18n';
 import { useDisplayName, useMyRow, useStore } from '../store';
 import { Avatar, Bar, Chip, Empty, Ring, StatusChip, WsChip } from '../components/ui';
 import { TaskDrawer } from '../components/TaskDrawer';
+import { NextMeetingCard } from './Meetings';
 import { DONE, WS_COLOR, daysBetween, isMine, isOverdue, parseDate, pct, today } from '../util';
 import type { Page } from '../App';
 
@@ -80,6 +81,8 @@ export function Home({ go }: { go: (p: Page) => void }) {
           </div>
         </div>
       </motion.div>
+
+      <NextMeetingCard onOpen={() => go('meetings')} />
 
       <div className="grid g-4">
         {[

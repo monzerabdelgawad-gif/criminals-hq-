@@ -14,7 +14,8 @@ var TABS = {
   GUIDE: 'USER GUIDE',
   USERS: 'USERS',
   LOG: 'ACTIVITY LOG',
-  UPLOADS: 'UPLOADS'
+  UPLOADS: 'UPLOADS',
+  MEETINGS: 'MEETINGS'
 };
 
 var DATE_FORMAT = 'dd mmm yyyy';
@@ -77,6 +78,13 @@ var ENTITIES = {
   resources: {
     tab: TABS.SETTINGS, header: 'Resource Name', until: 'D. DROPDOWN REFERENCE VALUES', keyMode: 'row',
     fields: ['name', 'workstream', 'url', 'version', 'lastChecked', 'verifiedBy']
+  },
+  meetings: {
+    tab: TABS.MEETINGS, header: 'Meeting ID', keyMode: 'id',
+    fields: ['id', 'title', 'date', 'time', 'duration', 'link', 'location', 'agenda', 'notes', 'status', 'createdBy', 'remindersSent'],
+    dateFields: ['date'],
+    numberFields: ['duration'],
+    readOnly: ['id', 'createdBy', 'remindersSent']
   },
   users: {
     tab: TABS.USERS, header: 'Email', keyMode: 'row',
