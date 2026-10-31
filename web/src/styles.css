@@ -430,3 +430,8 @@ html[dir='rtl'] .meet-title { font-family: 'Cairo', sans-serif; font-weight: 900
 .meet-strip { display: flex; align-items: center; gap: 14px; cursor: pointer; padding: 14px 16px; }
 .meet-strip-ic { color: var(--accent-2); flex: none; }
 .meet-strip.live { box-shadow: 0 0 0 1.5px var(--heist-red), var(--shadow); }
+.meet-link { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin-top: 6px; padding: 4px 10px; border-radius: 6px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--accent-2); text-decoration: none; direction: ltr;
+  background: color-mix(in srgb, var(--heist-red) 9%, transparent); border: 1px solid color-mix(in srgb, var(--heist-red) 28%, transparent); }
+.meet-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meet-link:hover { background: color-mix(in srgb, var(--heist-red) 16%, transparent); }

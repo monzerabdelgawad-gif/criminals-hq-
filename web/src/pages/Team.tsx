@@ -208,14 +208,15 @@ function AddPerson({ kind, onClose }: { kind: 'users' | 'team' | null; onClose: 
 }
 
 /** Admin-ish check for a USERS row as seen by the client (instructors; the sheet owner is flagged by the backend on "me"). */
-function rowIsAdmin(u: Row, me: { email: string; isAdmin?: boolean }) {
-  return u.teamRole === 'Instructor' || (!!me.isAdmin && String(u.email).toLowerCase() === me.email.toLowerCase());
+function rowIsAdmin(u: Row, me: { email: string; isAdmin?: boolean }, admins: string[] = []) {
+  const e = String(u.email).trim().toLowerCase();
+  return u.teamRole === 'Instructor' || (!!e && admins.includes(e)) || (!!me.isAdmin && e === me.email.toLowerCase());
 }
 
 function AccessBadge({ u }: { u: Row }) {
   const { t } = useI18n();
   const { all } = useStore();
-  if (rowIsAdmin(u, all!.me)) return <Chip color="var(--accent-2)">⚡ {t('fullAccess')}</Chip>;
+  if (rowIsAdmin(u, all!.me, all!.admins)) return <Chip color="var(--accent-2)">⚡ {t('fullAccess')}</Chip>;
   const n = parsePerms(u.perms).length;
   if (n === SECTIONS.length) return <Chip color="var(--s-done)">✏️ {t('fullAccess')}</Chip>;
   if (n === 0) return <Chip>👁 {t('readOnlyAll')}</Chip>;
@@ -226,7 +227,7 @@ function AccessBadge({ u }: { u: Row }) {
 function PermsPanel({ u, editable }: { u: Row; editable: boolean }) {
   const { t } = useI18n();
   const { all, update } = useStore();
-  const isAdminRow = rowIsAdmin(u, all!.me);
+  const isAdminRow = rowIsAdmin(u, all!.me, all!.admins);
   const on = parsePerms(u.perms);
   const set = (list: readonly Section[]) => {
     const next = list.length === SECTIONS.length ? 'all' : SECTIONS.filter((x) => list.includes(x)).join(', ');

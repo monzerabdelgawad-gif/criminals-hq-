@@ -35,6 +35,8 @@ export interface AllData {
   uploads: UploadEntry[];
   guide: [string, string][];
   folderUrl: string;
+  /** emails with admin rights besides instructors (sheet owner + ADMIN_EMAILS) */
+  admins?: string[];
 }
 
 export interface Change { field: string; value: string; expected?: string }

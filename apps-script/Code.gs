@@ -131,7 +131,8 @@ function apiGetAll_(user) {
     activity: readLog_(ss, TABS.LOG, 200),
     uploads: readLog_(ss, TABS.UPLOADS, 200),
     guide: readGuide_(ss),
-    folderUrl: folderId ? 'https://drive.google.com/drive/folders/' + folderId : ''
+    folderUrl: folderId ? 'https://drive.google.com/drive/folders/' + folderId : '',
+    admins: adminEmails_()
   };
 }
 
@@ -410,12 +411,23 @@ function canEdit_(user, entityOrSection) {
   return !!sec && (user.perms || []).indexOf(sec) >= 0;
 }
 
-/** Admins = instructors + the sheet owner (the account the script runs as). */
+/**
+ * Admins = instructors + the account the script runs as + everyone in the Script property
+ * ADMIN_EMAILS (comma separated). ADMIN_EMAILS keeps people admin after the sheet moves to the team account.
+ */
+function adminEmails_() {
+  var list = String(props_().getProperty('ADMIN_EMAILS') || '').toLowerCase().split(',')
+    .map(function (s) { return s.trim(); }).filter(String);
+  try {
+    var owner = String(Session.getEffectiveUser().getEmail() || '').toLowerCase();
+    if (owner && list.indexOf(owner) < 0) list.push(owner);
+  } catch (e) { /* */ }
+  return list;
+}
+
 function isAdmin_(email, teamRole) {
   if (String(teamRole) === 'Instructor') return true;
-  var owner = '';
-  try { owner = String(Session.getEffectiveUser().getEmail() || '').toLowerCase(); } catch (e) { /* */ }
-  return !!owner && owner === String(email).toLowerCase();
+  return adminEmails_().indexOf(String(email).trim().toLowerCase()) >= 0;
 }
 
 /** Returns an error code if this user may not make this change to this USERS row, else ''. */

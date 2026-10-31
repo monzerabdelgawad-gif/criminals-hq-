@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarClock, Clock, MapPin, Plus, Video } from 'lucide-react';
+import { CalendarClock, Clock, Link2, MapPin, Plus, Video } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { useCan, useStore } from '../store';
 import type { Row } from '../types';
@@ -64,6 +64,18 @@ export function JoinButton({ m, big }: { m: Row; big?: boolean }) {
   );
 }
 
+/** The meeting link as a visible, clickable line (e.g. "meet.google.com/abc-defg-hij"). */
+export function MeetLink({ m }: { m: Row }) {
+  const link = String(m.link ?? '').trim();
+  if (!/^https?:\/\//.test(link)) return null;
+  const short = link.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+  return (
+    <a className="meet-link" href={link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={link}>
+      <Link2 size={14} /> <span>{short}</span>
+    </a>
+  );
+}
+
 export function Meetings() {
   const { t, lang } = useI18n();
   const { all } = useStore();
@@ -98,6 +110,7 @@ export function Meetings() {
           </div>
           <h2 className="meet-title">{next.title}</h2>
           <MeetMeta m={next} lang={lang} />
+          <MeetLink m={next} />
           {next.agenda && <div className="meet-agenda">{next.agenda}</div>}
           <div className="row" style={{ marginTop: 14 }}><JoinButton m={next} big /></div>
         </motion.div>
@@ -155,6 +168,7 @@ function MeetRow({ m, now, onOpen }: { m: Row; now: Date; onOpen: () => void }) 
         </div>
         <div style={{ fontWeight: 700, marginTop: 2 }}>{m.title}</div>
         <MeetMeta m={m} lang={lang} />
+        <MeetLink m={m} />
       </div>
       {(st === 'upcoming' || st === 'live') && (
         <div style={{ textAlign: 'end' }}>
@@ -183,6 +197,7 @@ function MeetingBody({ m, onClose }: { m: Row; onClose: () => void }) {
       </DrawerHead>
       <div className="drawer-body">
         <div className="row"><JoinButton m={m} big /></div>
+        <MeetLink m={m} />
         <div className="muted small">📧 {t('remindersSent')}: {sent.length ? sent.map((k) => `${REMINDER_LABEL[k] ?? ''} ${t(('rem_' + k) as 'rem_morning')}`).join(' · ') : '—'}</div>
         <div className="fields">
           <Field full label={t('meetingTitle')} value={s('title')} onSave={save('title')} />
@@ -247,6 +262,7 @@ export function NextMeetingCard({ onOpen }: { onOpen: () => void }) {
         <div className="case-label">{t('nextMeeting')}</div>
         <div style={{ fontWeight: 800, fontSize: 16, marginTop: 2 }}>{next.title}</div>
         <MeetMeta m={next} lang={lang} />
+        <MeetLink m={next} />
       </div>
       <div style={{ textAlign: 'end' }}>
         <div className={live ? 'live-pill' : 'count-pill'}>{cd(next, now)}</div>
