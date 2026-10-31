@@ -348,7 +348,7 @@ function writeCell_(range, def, field, value) {
   if (v === '') { range.clearContent(); return; }
   if ((def.dateFields || []).indexOf(field) >= 0) {
     var d = parseDate_(v);
-    if (d) { range.setNumberFormat(DATE_FORMAT).setValue(d); return; }
+    if (d) { range.setNumberFormat(DATE_FORMAT).setValue(dateSerial_(d)); return; }
   }
   if ((def.numberFields || []).indexOf(field) >= 0 && !isNaN(Number(v))) {
     range.setValue(Number(v));
@@ -372,7 +372,48 @@ function parseDate_(s) {
 }
 
 function today_() {
-  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return Utilities.formatDate(new Date(), 'Africa/Cairo', 'yyyy-MM-dd');
+}
+
+/**
+ * A calendar day as a sheet date number (days since 30 Dec 1899). Writing this number instead of a
+ * Date object keeps the day the same whatever the script's and the spreadsheet's timezones are.
+ * (Writing a Date at "midnight" in the script's timezone showed up a day early in the sheet.)
+ */
+function dateSerial_(d) {
+  return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1899, 11, 30)) / 864e5);
+}
+
+/**
+ * Run ONCE from the editor: puts back dates that were written a day early (they show a time other
+ * than 00:00 in the spreadsheet's timezone). Dates typed by hand in the sheet are left alone.
+ * Safe to run again: fixed dates are midnight, so they are skipped.
+ */
+function repairDates() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetTz = ss.getSpreadsheetTimeZone(), scriptTz = Session.getScriptTimeZone();
+  var fixed = 0;
+  ['tasks', 'milestones', 'weekly', 'meetings'].forEach(function (name) {
+    var def = ENTITIES[name];
+    var sh = ss.getSheetByName(def.tab);
+    if (!sh) return;
+    var loc = locate_(def, sh.getDataRange().getDisplayValues());
+    if (!loc || loc.end <= loc.start) return;
+    (def.dateFields || []).forEach(function (f) {
+      var range = sh.getRange(loc.start + 1, def.fields.indexOf(f) + 1, loc.end - loc.start, 1);
+      var changed = false;
+      var out = range.getValues().map(function (r) {
+        var v = r[0];
+        if (!(v instanceof Date) || Utilities.formatDate(v, sheetTz, 'HH:mm') === '00:00') return [v];
+        var ymd = Utilities.formatDate(v, scriptTz, 'yyyy-MM-dd').split('-');
+        changed = true; fixed++;
+        return [dateSerial_(new Date(Number(ymd[0]), Number(ymd[1]) - 1, Number(ymd[2])))];
+      });
+      if (changed) range.setNumberFormat(DATE_FORMAT).setValues(out);
+    });
+  });
+  bumpRev_();
+  console.log('Fixed ' + fixed + ' dates. Sheet timezone: ' + sheetTz + ', script timezone: ' + scriptTz);
 }
 
 function log_(ss, user, entity, id, field, oldV, newV) {

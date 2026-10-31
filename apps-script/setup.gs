@@ -119,7 +119,7 @@ function convertDates_(ss, entity, cols) {
       var v = rr[0];
       if (v instanceof Date || v === '') return [v];
       var d = parseDate_(String(v).trim());
-      if (d) { changed = true; return [d]; }
+      if (d) { changed = true; return [dateSerial_(d)]; }
       return [v];
     });
     if (changed) range.setNumberFormat(DATE_FORMAT).setValues(out);
