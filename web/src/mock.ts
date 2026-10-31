@@ -200,6 +200,20 @@ function save(d: AllData) { try { localStorage.setItem(KEY, JSON.stringify(d)); 
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Demo only: try the app as different kinds of member (admin / partial / view only). */
+export type DemoRole = 'admin' | 'tasks' | 'view';
+export function getDemoRole(): DemoRole {
+  const me = load().me;
+  return me.isAdmin ? 'admin' : (me.perms ?? []).length ? 'tasks' : 'view';
+}
+export function setDemoRole(role: DemoRole) {
+  const db = load();
+  db.me.isAdmin = role === 'admin';
+  db.me.perms = role === 'tasks' ? ['tasks', 'uploads'] : [];
+  save(db);
+  location.reload();
+}
+
 export async function mockCall(body: Record<string, unknown>): Promise<unknown> {
   await wait(150);
   const db = load();

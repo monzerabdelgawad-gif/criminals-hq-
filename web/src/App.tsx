@@ -5,6 +5,7 @@ import {
   LogOut, Menu, Moon, NotebookPen, ShieldAlert, Sun, UploadCloud, Users, Settings as SettingsIcon,
 } from 'lucide-react';
 import { getToken } from './api';
+import { getDemoRole, setDemoRole, type DemoRole } from './mock';
 import { DEMO } from './config';
 import { useI18n, type TKey } from './i18n';
 import { StoreProvider, useDisplayName, useStore } from './store';
@@ -132,7 +133,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
             </div>
           ))}
           <div className="side-foot">
-            {DEMO && <div className="demo-pill">🧪 {t('demoMode')}</div>}
+            {DEMO && <div className="demo-pill">🧪 {t('demoMode')}<DemoRolePicker /></div>}
             <div className="row" style={{ padding: '0 6px' }}>
               <button className="btn icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={t('theme')}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
               <button className="btn icon" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')} aria-label={t('language')}><Languages size={16} /></button>
@@ -190,8 +191,22 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
           {!DEMO && <button className="btn sm" onClick={signOut}><LogOut size={14} /> {t('signOut')}</button>}
           <InstallButton />
         </div>
-        {DEMO && <div className="demo-pill" style={{ marginTop: 12 }}>🧪 {t('demoMode')}</div>}
+        {DEMO && <div className="demo-pill" style={{ marginTop: 12 }}>🧪 {t('demoMode')}<DemoRolePicker /></div>}
       </Modal>
     </div>
+  );
+}
+
+/** Demo mode only: switch who you are to preview permissions. */
+function DemoRolePicker() {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
+  return (
+    <select className="select" style={{ marginTop: 6, fontSize: 12, padding: '5px 8px' }} value={getDemoRole()}
+      onChange={(e) => setDemoRole(e.target.value as DemoRole)}>
+      <option value="admin">{ar ? 'جرّب كـ: أدمن' : 'Try as: admin'}</option>
+      <option value="tasks">{ar ? 'جرّب كـ: طالب (تاسكات + رفع)' : 'Try as: student (tasks + uploads)'}</option>
+      <option value="view">{ar ? 'جرّب كـ: طالب (قراية بس)' : 'Try as: student (view only)'}</option>
+    </select>
   );
 }
