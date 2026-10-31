@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { ExternalLink, FolderOpen, Plus, UploadCloud, FileText } from 'lucide-react';
 import { useI18n, type Lang } from '../i18n';
-import { useDisplayName, useStore } from '../store';
+import { useCan, useDisplayName, useStore } from '../store';
 import type { Row } from '../types';
 import { MAX_UPLOAD_MB } from '../config';
-import { Avatar, Drawer, DrawerHead, Empty, Field, Modal, PageHead, WsChip } from '../components/ui';
+import { Avatar, Drawer, DrawerHead, Empty, Field, Locked, Modal, PageHead, WsChip } from '../components/ui';
 import { cls } from '../util';
 
 /* ---------------- Uploads ---------------- */
@@ -19,6 +19,7 @@ export function Uploads() {
   const [note, setNote] = useState('');
   const [progress, setProgress] = useState<string | null>(null);
   const [big, setBig] = useState<File[]>([]);
+  const can = useCan()('uploads');
 
   const send = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -34,12 +35,14 @@ export function Uploads() {
   const tasks = all!.data.tasks.filter((x) => !ws || x.workstream === ws);
 
   return (
-    <div>
+    <Locked section="uploads"><div>
       <PageHead title={t('uploads')} sub={`Google Drive · max ${MAX_UPLOAD_MB} MB`}>
         {all!.folderUrl && <a className="btn" href={all!.folderUrl} target="_blank" rel="noreferrer"><FolderOpen size={15} /> {t('openFolder')}</a>}
       </PageHead>
       <div className="grid g-home">
-        <div className="card">
+        {!can ? (
+          <div className="card"><Empty>👁 {t('noUploadRights')}</Empty></div>
+        ) : <div className="card">
           <div className={cls('drop', over && 'over')} onClick={() => !busy && input.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
             onDrop={(e) => { e.preventDefault(); setOver(false); send(e.dataTransfer.files); }}>
@@ -76,7 +79,7 @@ export function Uploads() {
             </div>
             <Field full live label={t('note')} value={note} onSave={setNote} />
           </div>
-        </div>
+        </div>}
         <div className="card">
           <div className="card-title">{t('history')}</div>
           {all!.uploads.length === 0 ? <Empty>{t('noUploads')}</Empty> : (
@@ -95,7 +98,7 @@ export function Uploads() {
           )}
         </div>
       </div>
-    </div>
+    </div></Locked>
   );
 }
 
@@ -146,13 +149,14 @@ export function Resources() {
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [f, setF] = useState<Record<string, string>>({});
+  const can = useCan()('resources');
   const list = all!.data.resources;
   const sel = list.find((r) => r.id === open) ?? null;
   const s = (r: Row, k: string) => String(r[k] ?? '');
   return (
-    <div>
+    <Locked section="resources"><div>
       <PageHead title={t('resources')}>
-        <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('addResource')}</button>
+        {can && <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('addResource')}</button>}
       </PageHead>
       <div className="grid g-2">
         {list.map((r) => (
@@ -191,7 +195,7 @@ export function Resources() {
           </button>
         </div>
       </Modal>
-    </div>
+    </div></Locked>
   );
 }
 
@@ -224,7 +228,7 @@ export function Settings({ theme, setTheme }: { theme: string; setTheme: (t: str
     <div>
       <PageHead title={t('settings')} />
       <div className="grid g-home">
-        <div className="card">
+        <Locked section="settings" banner><div className="card">
           <div className="card-title">{t('seasonSettings')}</div>
           <div className="fields">
             {all!.data.settings.map((r) => {
@@ -238,7 +242,7 @@ export function Settings({ theme, setTheme }: { theme: string; setTheme: (t: str
               );
             })}
           </div>
-        </div>
+        </div></Locked>
         <div className="card">
           <div className="card-title">{t('language')} / {t('theme')}</div>
           <div className="stack" style={{ gap: 14 }}>

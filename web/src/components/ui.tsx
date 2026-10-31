@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { usePhotoOf, useStore } from '../store';
+import { useCan, usePhotoOf, useStore, type Section } from '../store';
 import { STATUS_EMOJI, WS_COLOR, WS_SHORT, cls, initials, isoDate, parseDate } from '../util';
 
 export const STATUS_COLOR: Record<string, string> = {
@@ -95,9 +95,10 @@ export function Drawer({ open, onClose, children }: { open: boolean; onClose: ()
 
 export function DrawerHead({ children, onClose }: { children: ReactNode; onClose: () => void }) {
   const { t } = useI18n();
+  const reading = useContext(ReadingCtx);
   return (
     <div className="drawer-head">
-      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>{reading && <div className="view-only sm">👁 {t('viewOnly')}</div>}{children}</div>
       <button className="btn icon ghost" onClick={onClose} aria-label={t('close')}><X size={18} /></button>
     </div>
   );
@@ -122,6 +123,25 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
 
 type FieldType = 'text' | 'textarea' | 'select' | 'date' | 'number';
 
+/** True inside a section the member can only read: every Field below switches to the reading layout. */
+const ReadingCtx = createContext(false);
+export const useReading = () => useContext(ReadingCtx);
+
+/** Wrap a page or drawer. Without edit rights for `section`, its fields become a clean, read-only layout. */
+export function Locked({ section, banner, children }: { section: Section; banner?: boolean; children: ReactNode }) {
+  const { t } = useI18n();
+  const can = useCan()(section);
+  if (can) return <>{children}</>;
+  return (
+    <ReadingCtx.Provider value>
+      <div className="reading">
+        {banner && <div className="view-only block">👁 {t('viewOnly')}</div>}
+        {children}
+      </div>
+    </ReadingCtx.Provider>
+  );
+}
+
 /**
  * Inline-editable field. Saves on blur (text) or on change (select/date).
  * Pass readOnly for computed columns.
@@ -133,9 +153,21 @@ export function Field({ label, value, onSave, type = 'text', options, readOnly, 
   live?: boolean;
 }) {
   const { v: tv } = useI18n();
+  const reading = useContext(ReadingCtx) && !live;
   const [val, setVal] = useState(value);
   useEffect(() => setVal(value), [value]);
   const commit = (next: string) => { if (next !== value) onSave?.(next); };
+
+  // reading layout: plain text, no boxes; empty fields are skipped so the page reads like a document
+  if (reading) {
+    if (!String(value ?? '').trim()) return null;
+    return (
+      <div className={full || type === 'textarea' ? 'full rf' : 'rf'}>
+        <div className="rf-label">{label}</div>
+        <div className={type === 'textarea' ? 'rf-value long' : 'rf-value'}>{translate ? tv(value) : value}</div>
+      </div>
+    );
+  }
 
   let input: ReactNode;
   if (readOnly || !onSave) {
@@ -187,10 +219,12 @@ export function Toasts() {
 }
 
 export function PageHead({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
+  const { t } = useI18n();
+  const reading = useContext(ReadingCtx);
   return (
     <div className="topbar">
       <div>
-        <h1 className="page-title">{title}</h1>
+        <h1 className="page-title">{title}{reading && <span className="view-only">👁 {t('viewOnly')}</span>}</h1>
         {sub && <div className="page-sub">{sub}</div>}
       </div>
       <div className="spacer" />

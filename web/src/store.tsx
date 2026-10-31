@@ -40,7 +40,7 @@ export function StoreProvider({ children, onSignOut }: { children: ReactNode; on
   const handleErr = useCallback((err: string) => {
     if (err === 'unauthorized') { signOut(); return; }
     const known: Record<string, string> = { network: t('offline'), not_your_profile: t('notYourProfile'),
-      admin_only: t('adminOnly'), own_email: t('ownEmail'), bad_photo: t('badPhoto') };
+      admin_only: t('adminOnly'), own_email: t('ownEmail'), bad_photo: t('badPhoto'), no_permission: t('noPermission') };
     toast(known[err] ?? `${t('error')}: ${err}`, 'err');
   }, [signOut, toast, t]);
 
@@ -150,6 +150,23 @@ export function useMyRow(): Row | undefined {
   const e = all.me.email.trim().toLowerCase();
   return all.data.users.find((u) => String(u.email).trim().toLowerCase() === e)
     ?? all.data.users.find((u) => String(u.name).trim().toLowerCase() === all.me.name.trim().toLowerCase());
+}
+
+/** Sections with their own edit switch (must match SECTIONS_ in Code.gs). */
+export const SECTIONS = ['tasks', 'milestones', 'risks', 'weekly', 'uploads', 'resources', 'settings'] as const;
+export type Section = typeof SECTIONS[number];
+
+/** Can the signed-in member edit this section? Admins always can; everyone can always read. */
+export function useCan() {
+  const { all } = useStore() ?? {};
+  return (sec: Section) => !!all && (!!all.me.isAdmin || (all.me.perms ?? []).includes(sec));
+}
+
+/** Parse the USERS "Permissions" cell ("all" or "tasks, uploads"). */
+export function parsePerms(v: unknown): Section[] {
+  const s = String(v ?? '').toLowerCase().trim();
+  if (s === 'all') return [...SECTIONS];
+  return s.split(',').map((x) => x.trim()).filter((x): x is Section => (SECTIONS as readonly string[]).includes(x));
 }
 
 /** Photo for a member, looked up by English or Arabic name (falls back to this device's Google photo for "me"). */

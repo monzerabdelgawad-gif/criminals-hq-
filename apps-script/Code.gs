@@ -107,7 +107,8 @@ function findUser_(email) {
         taskRoles: String(u.taskRoles || '').split(',').map(function (s) { return s.trim(); }).filter(String),
         lang: u.lang || 'en',
         photo: u.photo || '',
-        isAdmin: isAdmin_(e, u.teamRole)
+        isAdmin: isAdmin_(e, u.teamRole),
+        perms: parsePerms_(u.perms)
       };
     }
   }
@@ -208,6 +209,7 @@ function apiUpdate_(user, body) {
     var idx = findRowIndex_(def, vals, body.id);
     if (idx < 0) return { ok: false, error: 'not_found' };
 
+    if (body.entity !== 'users' && !canEdit_(user, body.entity)) return { ok: false, error: 'no_permission' };
     if (body.entity === 'users') {
       for (var p = 0; p < changes.length; p++) {
         var why = userFieldBlocked_(user, vals[idx][0], changes[p]);
@@ -258,6 +260,7 @@ function apiAdd_(user, body) {
     return { ok: false, error: 'bad_entity' };
   }
   if (body.entity === 'users' && !user.isAdmin) return { ok: false, error: 'admin_only' };
+  if (body.entity !== 'users' && !canEdit_(user, body.entity)) return { ok: false, error: 'no_permission' };
   var values = body.values || {};
   if (body.entity === 'users') delete values.photo;
   var lock = LockService.getScriptLock();
@@ -373,8 +376,29 @@ function log_(ss, user, entity, id, field, oldV, newV) {
 /* ---------------- profiles & permissions ---------------- */
 
 var PROFILE_FIELDS_ = ['name', 'nameAr', 'taskRoles', 'lang', 'photo']; // only the member themselves
-var ACCESS_FIELDS_ = ['email', 'teamRole'];                            // only admins
+var ACCESS_FIELDS_ = ['email', 'teamRole', 'perms'];                   // only admins
 var MAX_PHOTO_CHARS_ = 45000; // a cell holds 50,000 characters
+
+/**
+ * Edit permissions per section, stored in USERS -> Permissions as "all" or a list like "tasks, uploads".
+ * Empty = view only. Admins can always edit everything.
+ */
+var SECTIONS_ = ['tasks', 'milestones', 'risks', 'weekly', 'uploads', 'resources', 'settings'];
+var ENTITY_SECTION_ = { tasks: 'tasks', milestones: 'milestones', risks: 'risks', weekly: 'weekly', weeklyQ: 'weekly',
+  resources: 'resources', settings: 'settings', team: 'settings', uploads: 'uploads' };
+
+function parsePerms_(v) {
+  var s = String(v || '').toLowerCase();
+  if (s.trim() === 'all') return SECTIONS_.slice();
+  return s.split(',').map(function (x) { return x.trim(); })
+    .filter(function (x) { return SECTIONS_.indexOf(x) >= 0; });
+}
+
+function canEdit_(user, entityOrSection) {
+  if (user.isAdmin) return true;
+  var sec = ENTITY_SECTION_[entityOrSection];
+  return !!sec && (user.perms || []).indexOf(sec) >= 0;
+}
 
 /** Admins = instructors + the sheet owner (the account the script runs as). */
 function isAdmin_(email, teamRole) {
@@ -438,6 +462,7 @@ function setOwnPhoto_(user, url) {
 
 /** body: { fileName, mimeType, data (base64), workstream, taskId, note } */
 function apiUpload_(user, body) {
+  if (!canEdit_(user, 'uploads')) return { ok: false, error: 'no_permission' };
   var folderId = props_().getProperty('DRIVE_FOLDER_ID');
   if (!folderId) return { ok: false, error: 'no_folder' };
   if (!body.data || !body.fileName) return { ok: false, error: 'no_file' };

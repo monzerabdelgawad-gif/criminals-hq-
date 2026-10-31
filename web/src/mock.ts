@@ -149,7 +149,7 @@ function build(): AllData {
   const FI = 'https://www.firstinspires.org/resource-library/fll/challenge/challenge-and-resources';
   return {
     rev: 1,
-    me: { email: 'demo@criminals.team', name: 'Monzer', nameAr: 'منذر', teamRole: 'Student', taskRoles: [], lang: 'ar', photo: '', isAdmin: true },
+    me: { email: 'demo@criminals.team', name: 'Monzer', nameAr: 'منذر', teamRole: 'Student', taskRoles: [], lang: 'ar', photo: '', isAdmin: true, perms: [] },
     data: {
       tasks: buildTasks(),
       milestones: M.map((m, i) => ({ _row: i + 4, id: m[0], workstream: m[1], name: m[2], description: '', targetDate: m[3],
@@ -167,7 +167,7 @@ function build(): AllData {
         { _row: 40, id: 'r40', name: 'LEGO Education Season Materials', workstream: 'All', url: 'https://education.lego.com/en-us/first-lego-league/season-materials/', version: '2026-2027', lastChecked: '24 Oct 2026', verifiedBy: 'Coach' },
       ],
       users: TEAM.map(([name, nameAr, role], i) => ({ _row: i + 2, id: 'r' + (i + 2), email: i === 0 ? 'demo@criminals.team' : i === 1 ? 'arwa@example.com' : i === 10 ? 'ziad@example.com' : '',
-        name, nameAr, teamRole: role, taskRoles: '', lang: 'ar', photo: '' })),
+        name, nameAr, teamRole: role, taskRoles: '', lang: 'ar', photo: '', perms: i === 1 ? 'tasks, uploads' : '' })),
     },
     dropdowns: {
       Workstreams: Object.values(WS),
@@ -213,11 +213,12 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
       const rows = db.data[body.entity as Entity];
       const row = rows.find((r) => r.id === body.id);
       if (!row) return { ok: false, error: 'not_found' };
+      if (!canEditDemo(me, String(body.entity))) return { ok: false, error: 'no_permission' };
       if (body.entity === 'users') {
         // same rules as the real backend (Code.gs -> userFieldBlocked_)
         const own = String(row.email).toLowerCase() === me.email.toLowerCase();
         for (const c of body.changes as Change[]) {
-          if (['email', 'teamRole'].includes(c.field) && !me.isAdmin) return { ok: false, error: 'admin_only' };
+          if (['email', 'teamRole', 'perms'].includes(c.field) && !me.isAdmin) return { ok: false, error: 'admin_only' };
           if (['name', 'nameAr', 'taskRoles', 'lang', 'photo'].includes(c.field) && !own && !(me.isAdmin && !row.email)) return { ok: false, error: 'not_your_profile' };
         }
       }
@@ -238,6 +239,7 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
     }
     case 'add': {
       const entity = body.entity as Entity;
+      if (entity === 'users' ? !me.isAdmin : !canEditDemo(me, entity)) return { ok: false, error: 'no_permission' };
       const values = body.values as Record<string, string>;
       const rows = db.data[entity];
       const row: Row = { _row: 900 + rows.length, id: 'r' + (900 + rows.length), ...values };
@@ -258,6 +260,7 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
       return { ok: true, row };
     }
     case 'upload': {
+      if (!canEditDemo(me, 'uploads')) return { ok: false, error: 'no_permission' };
       db.uploads.unshift({ timestamp: now, name: me.name, email: me.email, fileName: String(body.fileName), url: '#',
         folder: String(body.workstream || '(root)'), taskId: String(body.taskId || ''), note: String(body.note || ''), size: '—' });
       db.rev++; save(db);
@@ -265,6 +268,14 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
     }
   }
   return { ok: false, error: 'unknown_action' };
+}
+
+/** Same section rules as Code.gs -> canEdit_ (users rows are checked separately). */
+function canEditDemo(me: AllData['me'], entity: string) {
+  if (entity === 'users' || me.isAdmin) return true;
+  const sec: Record<string, string> = { tasks: 'tasks', milestones: 'milestones', risks: 'risks', weekly: 'weekly', weeklyQ: 'weekly',
+    resources: 'resources', settings: 'settings', team: 'settings', uploads: 'uploads' };
+  return (me.perms ?? []).includes(sec[entity]);
 }
 
 function toDisplay(v: string) {

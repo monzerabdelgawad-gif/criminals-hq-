@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useStore } from '../store';
+import { useCan, useStore } from '../store';
 import type { Row } from '../types';
-import { Drawer, DrawerHead, Field, Modal, PageHead, StatusChip, WsChip } from '../components/ui';
+import { Locked, Drawer, DrawerHead, Field, Modal, PageHead, StatusChip, WsChip } from '../components/ui';
 import { daysBetween, parseDate, today } from '../util';
 
 export function Milestones() {
@@ -12,14 +12,15 @@ export function Milestones() {
   const { all } = useStore();
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const can = useCan()('milestones');
   const ms = all!.data.milestones;
   const sel = ms.find((m) => m.id === open) ?? null;
   const done = ms.filter((m) => m.status === 'Completed').length;
 
   return (
-    <div>
+    <Locked section="milestones"><div>
       <PageHead title={t('milestones')} sub={`${done}/${ms.length} ${t('done').toLowerCase()}`}>
-        <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('newMilestone')}</button>
+        {can && <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('newMilestone')}</button>}
       </PageHead>
       <div className="stack" style={{ gap: 10 }}>
         {ms.map((m, i) => {
@@ -52,7 +53,7 @@ export function Milestones() {
       </div>
       <Drawer open={!!sel} onClose={() => setOpen(null)}>{sel && <MilestoneBody m={sel} onClose={() => setOpen(null)} />}</Drawer>
       <NewItem open={adding} onClose={() => setAdding(false)} entity="milestones" />
-    </div>
+    </div></Locked>
   );
 }
 

@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useStore } from '../store';
+import { useCan, useStore } from '../store';
 import type { Row } from '../types';
-import { Field, PageHead } from '../components/ui';
+import { Field, Locked, PageHead } from '../components/ui';
 import { parseDate, pct, today } from '../util';
 
 export function Weekly() {
   const { t } = useI18n();
   const { all, update } = useStore();
+  const can = useCan()('weekly');
   const weeks = all!.data.weekly;
   const current = useMemo(() => {
     const now = today().getTime();
@@ -44,9 +45,9 @@ export function Weekly() {
   };
 
   return (
-    <div>
+    <Locked section="weekly"><div>
       <PageHead title={t('weekly')} sub={`${t('week')} ${idx + 1} / ${weeks.length}${idx === current ? ' · ' + t('thisWeek') : ''}`}>
-        <button className="btn" onClick={autoFill}><Wand2 size={15} /> {t('autoFill')}</button>
+        {can && <button className="btn" onClick={autoFill}><Wand2 size={15} /> {t('autoFill')}</button>}
       </PageHead>
 
       <div className="card tight row" style={{ marginBottom: 16, justifyContent: 'space-between', flexWrap: 'nowrap' }}>
@@ -86,6 +87,6 @@ export function Weekly() {
           </div>
         </div>
       </div>
-    </div>
+    </div></Locked>
   );
 }

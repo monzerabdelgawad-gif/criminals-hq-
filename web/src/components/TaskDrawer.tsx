@@ -1,10 +1,10 @@
 import { useRef } from 'react';
 import { Paperclip } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useDisplayName, useStore } from '../store';
+import { useCan, useDisplayName, useStore } from '../store';
 import type { Row } from '../types';
 import { isOverdue, isoDate, today } from '../util';
-import { Drawer, DrawerHead, Field, Linkify, PriorityChip, StatusChip, WsChip } from './ui';
+import { Drawer, DrawerHead, Field, Linkify, Locked, PriorityChip, StatusChip, WsChip } from './ui';
 
 export function TaskDrawer({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
   const { all } = useStore();
@@ -37,9 +37,10 @@ function TaskBody({ task, onClose }: { task: Row; onClose: () => void }) {
   const dd = all!.dropdowns;
   const s = (f: string) => String(task[f] ?? '');
   const save = (f: string) => (v: string) => update('tasks', task, { [f]: v });
+  const canUpload = useCan()('uploads');
 
   return (
-    <>
+    <Locked section="tasks">
       <DrawerHead onClose={onClose}>
         <div className="row">
           <span className="id-tag">{task.id}</span>
@@ -81,7 +82,8 @@ function TaskBody({ task, onClose }: { task: Row; onClose: () => void }) {
               if (f) await upload(f, { workstream: s('workstream'), taskId: task.id });
               e.target.value = '';
             }} />
-            <button className="btn sm" onClick={() => fileRef.current?.click()}><Paperclip size={14} /> {t('attachFile')}</button>
+            {canUpload && <button className="btn sm" onClick={() => fileRef.current?.click()}><Paperclip size={14} /> {t('attachFile')}</button>}
+            {!canUpload && !s('evidence') && <div className="muted small">—</div>}
           </div>
 
           <Field full label={t('procedure')} type="textarea" value={s('procedure')} onSave={save('procedure')} />
@@ -94,6 +96,6 @@ function TaskBody({ task, onClose }: { task: Row; onClose: () => void }) {
           <Field label={t('subcategory')} value={s('subcategory')} onSave={save('subcategory')} />
         </div>
       </div>
-    </>
+    </Locked>
   );
 }

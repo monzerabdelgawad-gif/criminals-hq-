@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { getPicture, useDisplayName, useMyRow, useProfileRights, useStore } from '../store';
+import { SECTIONS, getPicture, parsePerms, useCan, useDisplayName, useMyRow, useProfileRights, useStore, type Section } from '../store';
 import { PhotoPicker } from '../components/PhotoPicker';
 import type { Row } from '../types';
-import { Avatar, Chip, Drawer, DrawerHead, Empty, Field, Modal, PageHead } from '../components/ui';
+import { Avatar, Chip, Drawer, DrawerHead, Empty, Field, Locked, Modal, PageHead } from '../components/ui';
 import { DONE, isMine } from '../util';
 
 export function Team() {
@@ -12,6 +12,7 @@ export function Team() {
   const { all } = useStore();
   const dn = useDisplayName();
   const mine = useMyRow();
+  const canDir = useCan()('settings');
   const [openUser, setOpenUser] = useState<string | null>(null);
   // "Edit your profile" elsewhere in the app opens your own card here
   useEffect(() => {
@@ -51,6 +52,7 @@ export function Team() {
             </div>
             <div className="row" style={{ marginTop: 12, gap: 6 }}>
               {String(u.taskRoles || '').split(',').map((r) => r.trim()).filter(Boolean).map((r) => <Chip key={r}>{r}</Chip>)}
+              <AccessBadge u={u} />
               <span className="muted small" style={{ marginInlineStart: 'auto' }}>{countFor(u)} {t('tasksOwned')}</span>
             </div>
           </div>
@@ -59,7 +61,7 @@ export function Team() {
 
       <div className="card-title">
         {t('directory')}
-        <button className="btn sm" onClick={() => setAdding('team')}><Plus size={14} /> {t('addPerson')}</button>
+        {canDir && <button className="btn sm" onClick={() => setAdding('team')}><Plus size={14} /> {t('addPerson')}</button>}
       </div>
       <div className="card" style={{ padding: 6 }}>
         {team.length === 0 ? <Empty>—</Empty> : (
@@ -80,7 +82,7 @@ export function Team() {
       </div>
 
       <Drawer open={!!selU} onClose={() => setOpenUser(null)}>{selU && <UserBody u={selU} onClose={() => setOpenUser(null)} />}</Drawer>
-      <Drawer open={!!selD} onClose={() => setOpenDir(null)}>{selD && <DirBody p={selD} onClose={() => setOpenDir(null)} />}</Drawer>
+      <Drawer open={!!selD} onClose={() => setOpenDir(null)}>{selD && <Locked section="settings"><DirBody p={selD} onClose={() => setOpenDir(null)} /></Locked>}</Drawer>
       <AddPerson kind={adding} onClose={() => setAdding(null)} />
     </div>
   );
@@ -139,6 +141,7 @@ function UserBody({ u, onClose }: { u: Row; onClose: () => void }) {
             onSave={save('teamRole')} readOnly={!rights.access} />
         </div>
         {!rights.access && <div className="muted small" style={{ marginTop: 8 }}>{t('accessAdmins')} ({v(s('teamRole') || 'Student')})</div>}
+        <PermsPanel u={u} editable={rights.access} />
       </div>
     </>
   );
@@ -200,5 +203,61 @@ function AddPerson({ kind, onClose }: { kind: 'users' | 'team' | null; onClose: 
         <button className="btn primary" disabled={busy || !valid} onClick={submit}><Plus size={15} /> {t('add')}</button>
       </div>
     </Modal>
+  );
+}
+
+/** Admin-ish check for a USERS row as seen by the client (instructors; the sheet owner is flagged by the backend on "me"). */
+function rowIsAdmin(u: Row, me: { email: string; isAdmin?: boolean }) {
+  return u.teamRole === 'Instructor' || (!!me.isAdmin && String(u.email).toLowerCase() === me.email.toLowerCase());
+}
+
+function AccessBadge({ u }: { u: Row }) {
+  const { t } = useI18n();
+  const { all } = useStore();
+  if (rowIsAdmin(u, all!.me)) return <Chip color="var(--accent-2)">⚡ {t('fullAccess')}</Chip>;
+  const n = parsePerms(u.perms).length;
+  if (n === SECTIONS.length) return <Chip color="var(--s-done)">✏️ {t('fullAccess')}</Chip>;
+  if (n === 0) return <Chip>👁 {t('readOnlyAll')}</Chip>;
+  return <Chip color="var(--s-ip)">✏️ {n}/{SECTIONS.length} {t('sectionsOn')}</Chip>;
+}
+
+/** Per-section edit switches + "everything" / "view only" shortcuts. Only admins can flip them (backend enforces it too). */
+function PermsPanel({ u, editable }: { u: Row; editable: boolean }) {
+  const { t } = useI18n();
+  const { all, update } = useStore();
+  const isAdminRow = rowIsAdmin(u, all!.me);
+  const on = parsePerms(u.perms);
+  const set = (list: readonly Section[]) => {
+    const next = list.length === SECTIONS.length ? 'all' : SECTIONS.filter((x) => list.includes(x)).join(', ');
+    if (next !== String(u.perms ?? '')) update('users', u, { perms: next });
+  };
+  const toggle = (sec: Section) => set(on.includes(sec) ? on.filter((x) => x !== sec) : [...on, sec]);
+  const own = String(u.email).toLowerCase() === all!.me.email.toLowerCase();
+  if (!editable && !own) return null;
+
+  return (
+    <div className="perms">
+      <div className="card-title" style={{ marginBottom: 4 }}>{own && !editable ? t('yourAccess') : t('permissions')}</div>
+      {isAdminRow ? <div className="muted small">⚡ {t('adminAccess')}</div> : (
+        <>
+          <div className="muted small" style={{ marginBottom: 12 }}>{t('permsHint')}</div>
+          {editable && (
+            <div className="row" style={{ gap: 8, marginBottom: 12 }}>
+              <button className={on.length === SECTIONS.length ? 'btn sm primary' : 'btn sm'} onClick={() => set(SECTIONS)}>✏️ {t('canDoAll')}</button>
+              <button className={on.length === 0 ? 'btn sm primary' : 'btn sm'} onClick={() => set([])}>👁 {t('readOnlyAll')}</button>
+            </div>
+          )}
+          <div className="perm-list">
+            {SECTIONS.map((sec) => (
+              <label key={sec} className={editable ? 'perm-row' : 'perm-row disabled'}>
+                <span>{t(sec)}</span>
+                <button type="button" role="switch" aria-checked={on.includes(sec)} disabled={!editable}
+                  className={on.includes(sec) ? 'switch on' : 'switch'} onClick={() => toggle(sec)}><i /></button>
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

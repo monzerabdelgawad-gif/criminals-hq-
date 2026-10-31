@@ -13,6 +13,7 @@ export interface Me {
   lang: string;
   photo?: string;
   isAdmin?: boolean;
+  perms?: string[];
 }
 
 export interface LogEntry {

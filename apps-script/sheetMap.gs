@@ -80,7 +80,7 @@ var ENTITIES = {
   },
   users: {
     tab: TABS.USERS, header: 'Email', keyMode: 'row',
-    fields: ['email', 'name', 'nameAr', 'teamRole', 'taskRoles', 'lang', 'photo']
+    fields: ['email', 'name', 'nameAr', 'teamRole', 'taskRoles', 'lang', 'photo', 'perms']
   }
 };
 

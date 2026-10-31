@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useStore } from '../store';
+import { useCan, useStore } from '../store';
 import type { Row } from '../types';
-import { Chip, Drawer, DrawerHead, Field, PageHead, WsChip } from '../components/ui';
+import { Chip, Locked, Drawer, DrawerHead, Field, PageHead, WsChip } from '../components/ui';
 import { NewItem } from './Milestones';
 
 export const scoreColor = (s: number) => (s >= 15 ? 'var(--s-bl)' : s >= 9 ? 'var(--s-ur)' : 'var(--s-done)');
@@ -13,14 +13,15 @@ export function Risks() {
   const { all } = useStore();
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const can = useCan()('risks');
   const risks = [...all!.data.risks].sort((a, b) => Number(b.score) - Number(a.score));
   const openRisks = risks.filter((r) => r.status !== 'Closed');
   const sel = risks.find((r) => r.id === open) ?? null;
 
   return (
-    <div>
+    <Locked section="risks"><div>
       <PageHead title={t('risks')} sub={`${openRisks.length} ${t('riskOpen')}`}>
-        <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('newRisk')}</button>
+        {can && <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('newRisk')}</button>}
       </PageHead>
       <div className="grid g-home">
         <div className="card" style={{ padding: 6 }}>
@@ -58,7 +59,7 @@ export function Risks() {
       </div>
       <Drawer open={!!sel} onClose={() => setOpen(null)}>{sel && <RiskBody r={sel} onClose={() => setOpen(null)} />}</Drawer>
       <NewItem open={adding} onClose={() => setAdding(false)} entity="risks" />
-    </div>
+    </div></Locked>
   );
 }
 

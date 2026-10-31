@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid, List, Plus, Search } from 'lucide-react';
 import { useI18n } from '../i18n';
-import { useStore } from '../store';
+import { useCan, useStore } from '../store';
 import type { Row } from '../types';
-import { Bar, Chip, Empty, Field, Modal, PageHead, PriorityChip, STATUS_COLOR, StatusChip, WsChip } from '../components/ui';
+import { Bar, Chip, Empty, Field, Locked, Modal, PageHead, PriorityChip, STATUS_COLOR, StatusChip, WsChip } from '../components/ui';
 import { TaskDrawer, statusChanges } from '../components/TaskDrawer';
 import { STATUS_EMOJI, WS_COLOR, cls, isMine, isOverdue } from '../util';
 
@@ -13,6 +13,7 @@ const COLS = ['Not Started', 'In Progress', 'Blocked', 'Under Review', 'Complete
 export function Tasks() {
   const { t, v } = useI18n();
   const { all, update } = useStore();
+  const can = useCan()('tasks');
   const [view, setView] = useState<'board' | 'list'>(() => (window.innerWidth < 860 ? 'list' : 'board'));
   const [q, setQ] = useState('');
   const [ws, setWs] = useState('');
@@ -39,15 +40,16 @@ export function Tasks() {
   const drop = (status: string) => {
     const task = tasks.find((x) => x.id === dragId);
     setDragId(null); setOverCol(null);
+    if (!can) return;
     if (task && task.status !== status) update('tasks', task, statusChanges(task, status));
   };
 
   const cols = showCx ? [...COLS, 'Cancelled'] : COLS;
 
   return (
-    <div>
+    <Locked section="tasks"><div>
       <PageHead title={t('tasks')} sub={`${filtered.length} / ${tasks.length}`}>
-        <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('newTask')}</button>
+        {can && <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> {t('newTask')}</button>}
       </PageHead>
 
       <div className="row" style={{ marginBottom: 16, gap: 10 }}>
@@ -85,7 +87,7 @@ export function Tasks() {
                 </div>
                 {items.map((x, i) => (
                   <motion.div key={x.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.02 }}>
-                    <TaskCard task={x} dragging={dragId === x.id} onOpen={() => setOpen(x.id)} onDrag={setDragId} />
+                    <TaskCard task={x} dragging={dragId === x.id} onOpen={() => setOpen(x.id)} onDrag={setDragId} canDrag={can} />
                   </motion.div>
                 ))}
               </div>
@@ -123,14 +125,14 @@ export function Tasks() {
 
       <TaskDrawer taskId={open} onClose={() => setOpen(null)} />
       <NewTask open={adding} onClose={() => setAdding(false)} onCreated={(id) => { setAdding(false); setOpen(id); }} />
-    </div>
+    </div></Locked>
   );
 }
 
-function TaskCard({ task, onOpen, onDrag, dragging }: { task: Row; onOpen: () => void; onDrag: (id: string | null) => void; dragging: boolean }) {
+function TaskCard({ task, onOpen, onDrag, dragging, canDrag }: { task: Row; onOpen: () => void; onDrag: (id: string | null) => void; dragging: boolean; canDrag: boolean }) {
   const overdue = isOverdue(task);
   return (
-    <div className={cls('tcard', dragging && 'dragging')} draggable onDragStart={() => onDrag(task.id)} onDragEnd={() => onDrag(null)} onClick={onOpen}>
+    <div className={cls('tcard', dragging && 'dragging')} draggable={canDrag} onDragStart={() => canDrag && onDrag(task.id)} onDragEnd={() => onDrag(null)} onClick={onOpen}>
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <span className="id-tag">{task.id}</span>
         <WsChip ws={String(task.workstream)} short />
