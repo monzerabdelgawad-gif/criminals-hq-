@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useI18n } from '../i18n';
@@ -157,6 +157,20 @@ export function Field({ label, value, onSave, type = 'text', options, readOnly, 
   const [val, setVal] = useState(value);
   useEffect(() => setVal(value), [value]);
   const commit = (next: string) => { if (next !== value) onSave?.(next); };
+  // date / time: typing goes through half-finished values (e.g. "31 Nov" while changing the month),
+  // so save only after a short pause or when leaving the field, and never save a half-typed (empty) value mid-edit
+  const timer = useRef<number>();
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const settle = (next: string) => {
+    setVal(next);
+    clearTimeout(timer.current);
+    if (next) timer.current = window.setTimeout(() => commit(next), 900);
+  };
+  const leave = (e: React.FocusEvent<HTMLInputElement>) => {
+    clearTimeout(timer.current);
+    if (e.currentTarget.validity?.badInput) { setVal(value); return; } // left half-typed: keep the saved value
+    commit(val);
+  };
 
   // reading layout: plain text, no boxes; empty fields are skipped so the page reads like a document
   if (reading) {
@@ -183,10 +197,10 @@ export function Field({ label, value, onSave, type = 'text', options, readOnly, 
   } else if (type === 'date') {
     const d = parseDate(val);
     input = (
-      <input className="input" type="date" value={d ? isoDate(d) : ''} onChange={(e) => { setVal(e.target.value); commit(e.target.value); }} />
+      <input className="input" type="date" value={d ? isoDate(d) : val} onChange={(e) => settle(e.target.value)} onBlur={leave} />
     );
   } else if (type === 'time') {
-    input = <input className="input" type="time" value={val} onChange={(e) => setVal(e.target.value)} onBlur={() => commit(val)} />;
+    input = <input className="input" type="time" value={val} onChange={(e) => settle(e.target.value)} onBlur={leave} />;
   } else if (type === 'textarea') {
     input = <textarea className="textarea" value={val} placeholder={placeholder}
       onChange={(e) => { setVal(e.target.value); if (live) onSave?.(e.target.value); }} onBlur={() => commit(val)} />;
