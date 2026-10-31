@@ -1,60 +1,66 @@
-/* ============ tokens ============ */
+/* ============ tokens — "Criminals" design system ============ */
+/* Dark = "Vault" (default), light = "Case File". Black/bone do the work, heist-red is the signature,
+   glow is the BIOGLOW season accent (keep it under ~10% of a screen). */
 :root {
-  /* dark = black + red */
-  --bg: #050505;
-  --bg-2: #140405;
-  --text: #f7f7f7;
-  --text-2: rgba(247, 247, 247, 0.68);
-  --text-3: rgba(247, 247, 247, 0.42);
-  --glass: rgba(255, 255, 255, 0.045);
-  --glass-2: rgba(255, 255, 255, 0.08);
-  --glass-strong: rgba(18, 10, 11, 0.78);
-  --stroke: rgba(255, 255, 255, 0.11);
-  --stroke-2: rgba(255, 255, 255, 0.2);
-  --hi: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
-  --shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.75);
-  --blur: blur(28px) saturate(160%);
+  --bg: #0B0C0E;            /* vault-950 */
+  --bg-2: #15171A;          /* vault-900 */
+  --text: #EDE8DF;          /* ink (bone) */
+  --text-2: rgba(237, 232, 223, 0.74);
+  --text-3: #9A968E;        /* ink-muted: 4.5:1 on vault-950 */
+  --glass: rgba(237, 232, 223, 0.045);
+  --glass-2: rgba(237, 232, 223, 0.085);
+  --glass-strong: rgba(21, 23, 26, 0.78);
+  --stroke: rgba(237, 232, 223, 0.11);
+  --stroke-2: rgba(237, 232, 223, 0.2);
+  --hi: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+  --shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
+  --blur: blur(28px) saturate(170%);
 
-  --accent: #ff2d3d;        /* main red */
-  --accent-ink: #ffffff;
-  --accent-2: #ff6b74;      /* light red */
-  --accent-3: #b00018;      /* deep red */
+  --heist-red: #E5242B;     /* logo slashes, big blocks, primary buttons */
+  --accent: #E5242B;
+  --accent-ink: #FFFFFF;    /* on-red */
+  --accent-2: #FF5A5F;      /* red-text: red for small text */
+  --accent-3: #9E1218;
+  --glow: #3DFFA2;          /* BIOGLOW season accent */
+  --on-glow: #0B0C0E;
 
-  /* workstreams: red family + neutrals so the page stays black/red */
-  --c-ip: #ff2d3d; --c-rd: #f2f2f2; --c-rg: #ff8a91; --c-cv: #c2121f; --c-op: #8c8c8c; --c-all: #d4d4d4;
-  /* status keeps meaning: green = done, amber = review, red = blocked */
-  --s-ns: #737373; --s-ip: #f2f2f2; --s-bl: #ff2d3d; --s-ur: #f5a524; --s-done: #22c55e; --s-cx: #525252;
+  /* workstreams: innovation project = glow (the season story), the rest stay red / bone / grey */
+  --c-ip: #3DFFA2; --c-rd: #EDE8DF; --c-rg: #FF5A5F; --c-cv: #E5242B; --c-op: #9A968E; --c-all: #C9C3B8;
+  /* status keeps meaning: glow = done, amber = review, red = blocked */
+  --s-ns: #77736C; --s-ip: #EDE8DF; --s-bl: #FF5A5F; --s-ur: #F5A524; --s-done: #3DFFA2; --s-cx: #55524D;
 
-  --blob-1: #d10014; --blob-2: #7a000c; --blob-3: #ff3344; --blob-4: #3a0a0d;
+  --blob-1: #E5242B; --blob-2: #6E0B10; --blob-3: #3DFFA2; --blob-4: #2A0A0C;
 
-  --r-lg: 26px; --r-md: 18px; --r-sm: 12px;
+  --r-lg: 20px; --r-md: 14px; --r-sm: 10px;
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;          /* headings: Inter 800 */
+  --font-hero: 'Anton', 'Bebas Neue', Impact, 'Arial Narrow', sans-serif; /* big display, ALL CAPS */
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace; /* case-file labels */
   color-scheme: dark;
 }
 
 :root[data-theme='light'] {
-  /* light = white + red */
-  --bg: #ffffff;
-  --bg-2: #fff7f7;
-  --text: #0a0a0a;
-  --text-2: rgba(10, 10, 10, 0.68);
-  --text-3: rgba(10, 10, 10, 0.45);
-  --glass: rgba(255, 255, 255, 0.55);
-  --glass-2: rgba(255, 255, 255, 0.78);
-  --glass-strong: rgba(255, 255, 255, 0.86);
-  --stroke: rgba(255, 255, 255, 0.85);
-  --stroke-2: rgba(10, 10, 10, 0.12);
-  --hi: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(10, 10, 10, 0.05);
-  --shadow: 0 20px 50px -24px rgba(120, 0, 10, 0.25);
-  --accent: #e10014; --accent-ink: #ffffff; --accent-2: #ff4d5a; --accent-3: #9e0012;
-  --c-ip: #e10014; --c-rd: #171717; --c-rg: #ff5c67; --c-cv: #9e0012; --c-op: #737373; --c-all: #404040;
-  --s-ns: #8a8a8a; --s-ip: #171717; --s-bl: #e10014; --s-ur: #d97706; --s-done: #16a34a; --s-cx: #a3a3a3;
-  --blob-1: #ff2d3d; --blob-2: #ff9aa1; --blob-3: #ffc2c6; --blob-4: #ff6b74;
+  --bg: #F2EEE6;            /* case-file paper */
+  --bg-2: #E7E1D6;
+  --text: #121315;
+  --text-2: rgba(18, 19, 21, 0.74);
+  --text-3: #5A564F;
+  --glass: rgba(255, 255, 255, 0.45);
+  --glass-2: rgba(255, 255, 255, 0.7);
+  --glass-strong: rgba(246, 243, 237, 0.88);
+  --stroke: rgba(255, 255, 255, 0.8);
+  --stroke-2: rgba(18, 19, 21, 0.14);
+  --hi: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(18, 19, 21, 0.05);
+  --shadow: 0 22px 50px -26px rgba(60, 40, 20, 0.35);
+  --heist-red: #C8161D; --accent: #C8161D; --accent-ink: #FFFFFF; --accent-2: #C8161D; --accent-3: #8E0F14;
+  --glow: #0A7346; --on-glow: #FFFFFF;
+  --c-ip: #0A7346; --c-rd: #121315; --c-rg: #C8161D; --c-cv: #8E0F14; --c-op: #5A564F; --c-all: #3A3E46;
+  --s-ns: #77736C; --s-ip: #121315; --s-bl: #C8161D; --s-ur: #B45309; --s-done: #0A7346; --s-cx: #A39C90;
+  --blob-1: #E5242B; --blob-2: #F0B9B6; --blob-3: #9FE3C4; --blob-4: #E7C9A9;
   color-scheme: light;
 }
 
-html[dir='rtl'] { --font: 'IBM Plex Sans Arabic', 'Inter', system-ui, sans-serif; --font-display: 'IBM Plex Sans Arabic', 'Space Grotesk', sans-serif; }
+html[dir='rtl'] { --font: 'Cairo', 'Inter', system-ui, sans-serif; --font-display: 'Cairo', 'Inter', sans-serif; }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
@@ -354,3 +360,54 @@ html[dir='rtl'] .flip { transform: scaleX(-1); }
 .switch.on { background: var(--accent); border-color: var(--accent); }
 .switch.on i { inset-inline-start: 20px; }
 .switch:disabled { cursor: default; }
+
+/* ============ Criminals brand layer (case-file language on top of the glass) ============ */
+/* Display: Anton, ALL CAPS, tight leading — only for big moments (page titles, hero, scores, countdown). */
+.page-title, .hero h2, .hero .countdown, .stat .v, .login h1, .welcome-name {
+  font-family: var(--font-hero); font-weight: 400; text-transform: uppercase; letter-spacing: 0.01em; line-height: 0.95;
+}
+.page-title { font-size: 38px; position: relative; padding-top: 12px; }
+/* the red slash from the logo, used as an accent above headlines */
+.page-title::before { content: ''; position: absolute; top: 0; inset-inline-start: 2px; width: 26px; height: 5px;
+  background: var(--heist-red); transform: skewX(-28deg); }
+.hero h2 { font-size: 44px; }
+.hero h2 .grad { background: none; color: var(--glow); }
+.hero .countdown { font-size: 76px; letter-spacing: 0; }
+.stat .v { font-size: 40px; letter-spacing: 0.01em; }
+.stat .v small { font-family: var(--font-mono); font-size: 13px; }
+/* Arabic has no Anton: Cairo 900, no caps */
+html[dir='rtl'] .page-title, html[dir='rtl'] .hero h2, html[dir='rtl'] .welcome-name {
+  font-family: 'Cairo', sans-serif; font-weight: 900; text-transform: none; letter-spacing: 0; line-height: 1.2;
+}
+/* Headings inside cards / drawers: Inter 800 */
+.card-title, .col-head, .modal h3, .drawer-head h3, .g-group, .drop .big, .guide-sec { font-weight: 800; letter-spacing: -0.01em; }
+/* Case-file labels: JetBrains Mono, UPPERCASE, tracked */
+.id-tag, .case-label, label.lbl, .rf-label, table.t th, .stat .k, .g-month, .page-sub, .brand-name small {
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.12em;
+}
+.id-tag { color: var(--accent-2); font-weight: 700; font-size: 11.5px; }
+label.lbl, .rf-label, table.t th, .stat .k { font-size: 10.5px; font-weight: 700; }
+.page-sub { font-size: 11px; font-weight: 500; }
+html[dir='rtl'] label.lbl, html[dir='rtl'] .rf-label, html[dir='rtl'] .stat .k, html[dir='rtl'] table.t th, html[dir='rtl'] .page-sub {
+  font-family: var(--font); letter-spacing: 0; text-transform: none; font-size: 12px;
+}
+.case-label { font-size: 11px; font-weight: 700; color: var(--accent-2); }
+
+/* Brand block: C10 mark + wordmark (logo files, never retyped) */
+.brand { gap: 10px; color: var(--text); }
+.brand .mark { flex: none; }
+.brand-name { display: flex; flex-direction: column; gap: 6px; }
+.brand-name small { font-size: 9.5px; margin-top: 0; }
+.login .mark { display: block; margin: 0 auto 14px; color: var(--text); }
+.login .wordmark { display: block; margin: 0 auto; color: var(--text); }
+.login .tagline { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-2); margin-top: 14px; }
+
+/* Glass tuned for vault black: a touch more blur and a hairline highlight */
+.card, .panel { border-radius: var(--r-lg); }
+.avatar { background: linear-gradient(135deg, #2A2D33, #15171A); color: var(--text); border: 1px solid var(--stroke-2); }
+:root[data-theme='light'] .avatar { background: linear-gradient(135deg, #E7E1D6, #D6CDBD); }
+.nav-item.active { box-shadow: var(--hi), inset 3px 0 0 var(--heist-red); }
+html[dir='rtl'] .nav-item.active { box-shadow: var(--hi), inset -3px 0 0 var(--heist-red); }
+.chip { border-radius: 6px; }
+.btn.primary { box-shadow: 0 10px 30px -12px var(--heist-red); }
+.blob.b3 { opacity: 0.05; }

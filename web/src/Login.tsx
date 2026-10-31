@@ -5,6 +5,7 @@ import { GOOGLE_CLIENT_ID } from './config';
 import { useI18n } from './i18n';
 import { savePicture } from './store';
 import { InAppBanner } from './components/Mobile';
+import { Mark, Wordmark } from './components/Brand';
 
 declare global {
   interface Window {
@@ -53,8 +54,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="login-wrap">
       <motion.div className="card login" initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5 }}>
-        <div className="logo">C</div>
-        <h1>criminals</h1>
+        <Mark size={88} className="mark" />
+        <Wordmark height={30} className="wordmark" />
+        <div className="tagline">{lang === 'ar' ? 'إحنا مش بنسرق حاجة… إحنا بنسرق النقط.' : "We don't steal things. We steal points."}</div>
         <div className="tag">FLL BIOGLOW 2026–27 · {t('signInTitle')}</div>
         <InAppBanner />
         <div className="gbtn" ref={btn} style={{ opacity: busy ? 0.4 : 1 }} />

@@ -12,6 +12,7 @@ import { StoreProvider, useDisplayName, useStore } from './store';
 import { Login } from './Login';
 import { Avatar, Chip, Modal, Toasts } from './components/ui';
 import { Welcome } from './components/Welcome';
+import { Mark, Wordmark } from './components/Brand';
 import { InstallButton, OfflineBanner } from './components/Mobile';
 import { Home } from './pages/Home';
 import { Tasks } from './pages/Tasks';
@@ -120,8 +121,8 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
       <aside className="sidebar">
         <div className="panel">
           <div className="brand">
-            <div className="logo">C</div>
-            <div className="brand-name">criminals<small>BIOGLOW · {t('appTagline')}</small></div>
+            <Mark size={40} className="mark" />
+            <div className="brand-name"><Wordmark height={17} /><small>BIOGLOW 26/27 · {t('appTagline')}</small></div>
           </div>
           {NAV.map((n, i) => (
             <div key={n.id}>

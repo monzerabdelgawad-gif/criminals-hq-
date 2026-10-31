@@ -11,7 +11,7 @@ import type { Page } from '../App';
 const fade = (i: number) => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { delay: i * 0.05, duration: 0.4 } });
 
 export function Home({ go }: { go: (p: Page) => void }) {
-  const { t, v } = useI18n();
+  const { t, v, lang } = useI18n();
   const { all } = useStore();
   const dn = useDisplayName();
   const [open, setOpen] = useState<string | null>(null);
@@ -64,7 +64,8 @@ export function Home({ go }: { go: (p: Page) => void }) {
               </div>
             </div>
             <div className="muted small" style={{ fontWeight: 600, marginTop: 14 }}><bdi>{vibe}</bdi></div>
-            <h2 style={{ marginTop: 8 }}>criminals <span className="grad">bioglow</span> season</h2>
+            <div className="case-label" style={{ marginTop: 6 }}>CASE NO. 2627 // {t('heroCase')}</div>
+            <h2 style={{ marginTop: 6 }}>{lang === 'ar' ? <>عملية <span className="grad">BIOGLOW</span></> : <>Operation <span className="grad">Bioglow</span></>}</h2>
             <div className="muted" style={{ marginTop: 8 }}>{t('heroSub')}</div>
           </div>
           <div style={{ textAlign: 'end' }}>
