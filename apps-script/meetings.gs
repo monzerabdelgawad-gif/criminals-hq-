@@ -90,7 +90,7 @@ function isMeetingDayMorning_(start, now) {
 function meetingRecipients_(ss) {
   return readEntity_(ss, 'users')
     .filter(function (u) { return String(u.email).indexOf('@') > 0 && String(u.teamRole) !== 'Instructor'; })
-    .map(function (u) { return String(u.email).trim(); });
+    .map(function (u) { return { email: String(u.email).trim(), name: String(u.nameAr || u.name || '').trim() }; });
 }
 
 function sendMeetingEmail_(ss, m, start, kind, minsLeft) {
@@ -104,14 +104,16 @@ function sendMeetingEmail_(ss, m, start, kind, minsLeft) {
       : { en: 'Starts in ' + minsLeft + ' min', ar: 'الميتينج بعد ' + minsLeft + ' دقيقة' },
     start: { en: 'Starting now', ar: 'الميتينج بدأ دلوقتي' }
   }[kind];
-  var subject = (kind === 'start' ? '🔴 ' : kind === 'hour' ? '⏰ ' : '📅 ') + head.ar + ' · ' + title + ' (' + Utilities.formatDate(start, MEETING_TZ_, 'HH:mm') + ')';
+  // plain subject (no emoji / symbols): looks like a personal note, not a newsletter
+  var subject = head.ar + ': ' + title + ' - ' + Utilities.formatDate(start, MEETING_TZ_, 'HH:mm');
   var site = props_().getProperty('SITE_URL') || SITE_URL_DEFAULT_;
   var esc = function (s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var link = /^https?:\/\//.test(String(m.link || '')) ? String(m.link) : '';
-  var html =
+  var html = function (who) { return '' +
     '<div style="background:#0B0C0E;padding:28px 16px;font-family:Inter,Arial,sans-serif">' +
     '<div style="max-width:520px;margin:0 auto;background:#15171A;border:1px solid #25282E;padding:24px;color:#EDE8DF">' +
     '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;letter-spacing:2px;color:#FF5A5F;text-transform:uppercase">CRIMINALS // ' + esc(head.en) + '</div>' +
+    (who ? '<div style="font-size:15px;margin-top:12px" dir="rtl">أهلاً يا ' + esc(who) + '،</div>' : '') +
     '<div style="font-size:24px;font-weight:800;margin:10px 0 4px">' + esc(title) + '</div>' +
     '<div style="font-size:15px;color:#9A968E" dir="rtl">' + esc(head.ar) + '</div>' +
     '<div style="height:4px;width:28px;background:#E5242B;margin:16px 0"></div>' +
@@ -120,10 +122,15 @@ function sendMeetingEmail_(ss, m, start, kind, minsLeft) {
     (m.agenda ? '<div style="font-size:14px;line-height:1.6;color:#C9C3B8;margin-top:14px;white-space:pre-wrap">' + esc(m.agenda) + '</div>' : '') +
     (link ? '<a href="' + esc(link) + '" style="display:inline-block;margin-top:20px;background:#E5242B;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px">Join meeting · ادخل الميتينج</a>' : '') +
     '<div style="margin-top:22px;font-size:12px;color:#9A968E"><a href="' + esc(site) + '/#/meetings" style="color:#FF5A5F">Criminals HQ</a> · We don\'t steal things. We steal points.</div>' +
-    '</div></div>';
+    '</div></div>'; };
   var text = head.en + ' — ' + title + '\n' + when + (link ? '\n' + link : '') + '\n' + site + '/#/meetings';
-  // students in BCC (they don't see each other's emails); the sending account gets the visible copy
+  // one personal email per student (a single mail to many people in BCC is a strong spam signal);
+  // uses the same daily quota, and replies go back to the team account
   var owner = String(Session.getEffectiveUser().getEmail() || '');
-  var bcc = to.filter(function (e) { return e.toLowerCase() !== owner.toLowerCase(); });
-  MailApp.sendEmail({ to: owner, bcc: bcc.join(','), subject: subject, htmlBody: html, body: text, name: 'Criminals HQ' });
+  to.forEach(function (r) {
+    try {
+      MailApp.sendEmail({ to: r.email, subject: subject, htmlBody: html(r.name), body: (r.name ? 'أهلاً يا ' + r.name + '. ' : '') + text,
+        name: 'Criminals HQ', replyTo: owner });
+    } catch (e) { console.error('Reminder to ' + r.email + ' failed: ' + e); }
+  });
 }
