@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Activity as ActivityIcon, BookOpen, CalendarClock, CalendarRange, Flag, Home as HomeIcon, Languages, Link2, ListChecks,
-  LogOut, Menu, Moon, NotebookPen, ShieldAlert, Sun, UploadCloud, Users, Settings as SettingsIcon,
+  LogOut, Menu, Moon, NotebookPen, PanelLeftClose, PanelLeftOpen, ShieldAlert, Sun, UploadCloud, Users, Settings as SettingsIcon,
 } from 'lucide-react';
 import { getToken } from './api';
 import { getDemoRole, setDemoRole, type DemoRole } from './mock';
 import { DEMO } from './config';
 import { useI18n, type TKey } from './i18n';
-import { StoreProvider, useDisplayName, useStore } from './store';
+import { StoreProvider, useDisplayName, useSeeActivity, useStore } from './store';
 import { Login } from './Login';
 import { Avatar, Chip, Modal, Toasts } from './components/ui';
 import { Welcome } from './components/Welcome';
@@ -31,17 +31,25 @@ const NAV: { id: Page; icon: ReactNode; key: TKey }[] = [
   { id: 'home', icon: <HomeIcon size={18} />, key: 'home' },
   { id: 'meetings', icon: <CalendarClock size={18} />, key: 'meetings' },
   { id: 'tasks', icon: <ListChecks size={18} />, key: 'tasks' },
+  { id: 'uploads', icon: <UploadCloud size={18} />, key: 'uploads' },
   { id: 'timeline', icon: <CalendarRange size={18} />, key: 'timeline' },
   { id: 'milestones', icon: <Flag size={18} />, key: 'milestones' },
   { id: 'risks', icon: <ShieldAlert size={18} />, key: 'risks' },
   { id: 'weekly', icon: <NotebookPen size={18} />, key: 'weekly' },
-  { id: 'uploads', icon: <UploadCloud size={18} />, key: 'uploads' },
   { id: 'team', icon: <Users size={18} />, key: 'team' },
   { id: 'activity', icon: <ActivityIcon size={18} />, key: 'activity' },
   { id: 'resources', icon: <Link2 size={18} />, key: 'resources' },
   { id: 'guide', icon: <BookOpen size={18} />, key: 'guide' },
   { id: 'settings', icon: <SettingsIcon size={18} />, key: 'settings' },
 ];
+/** Sidebar groups: daily work first, planning next, then the crew and the back office. */
+const NAV_GROUPS: { key: TKey; ids: Page[] }[] = [
+  { key: 'navOps', ids: ['home', 'meetings', 'tasks', 'uploads'] },
+  { key: 'navPlan', ids: ['timeline', 'milestones', 'risks', 'weekly'] },
+  { key: 'navCrew', ids: ['team', 'activity'] },
+  { key: 'navMore', ids: ['resources', 'guide', 'settings'] },
+];
+const RAIL_KEY = 'criminals.rail';
 const MOBILE_TABS: Page[] = ['home', 'meetings', 'tasks', 'uploads'];
 
 const readHash = (): Page => {
@@ -59,7 +67,7 @@ export default function App() {
 
   return (
     <>
-      <div className="bg"><div className="blob b1" /><div className="blob b2" /><div className="blob b3" /><div className="blob b4" /><div className="grain" /></div>
+      <div className="bg"><div className="grain" /></div>
       <OfflineBanner />
       {authed ? (
         <StoreProvider onSignOut={onSignOut}>
@@ -76,8 +84,11 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
   const { t, v, lang, setLang } = useI18n();
   const { all, error, refresh, busy, signOut } = useStore();
   const dn = useDisplayName();
+  const seeActivity = useSeeActivity();
   const [page, setPage] = useState<Page>(readHash);
   const [more, setMore] = useState(false);
+  const [rail, setRailState] = useState(() => { try { return localStorage.getItem(RAIL_KEY) === '1'; } catch { return false; } });
+  const setRail = (r: boolean) => { setRailState(r); try { localStorage.setItem(RAIL_KEY, r ? '1' : '0'); } catch { /* */ } };
 
   useEffect(() => {
     const on = () => setPage(readHash());
@@ -112,6 +123,9 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
   }
 
   const blockedCount = all.data.tasks.filter((x) => x.status === 'Blocked' || isOverdue(x)).length;
+  // Activity is private to a few people: hide it everywhere for everyone else
+  const canPage = (id: Page) => id !== 'activity' || seeActivity;
+  const shown: Page = canPage(page) ? page : 'home';
   const pages: Record<Page, ReactNode> = {
     home: <Home go={go} />, meetings: <Meetings />, tasks: <Tasks />, timeline: <Timeline />, milestones: <Milestones />, risks: <Risks />,
     weekly: <Weekly />, team: <Team />, uploads: <Uploads />, activity: <Activity />, resources: <Resources />,
@@ -119,36 +133,45 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
   };
 
   return (
-    <div className="app">
+    <div className={cls('app', rail && 'rail')}>
       <aside className="sidebar">
         <div className="panel">
           <div className="brand">
-            <Mark size={40} className="mark" />
-            <div className="brand-name"><Wordmark height={17} /><small>BIOGLOW 26/27 · {t('appTagline')}</small></div>
+            <Mark size={rail ? 36 : 40} className="mark" />
+            <div className="brand-name"><Wordmark height={16} /><small>BIOGLOW 26/27 · {t('appTagline')}</small></div>
+            <button className="btn icon ghost side-toggle" onClick={() => setRail(!rail)} title={rail ? t('expandSide') : t('collapseSide')} aria-label={rail ? t('expandSide') : t('collapseSide')}>
+              {(rail !== (lang === 'ar')) ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+            </button>
           </div>
-          {NAV.map((n, i) => (
-            <div key={n.id}>
-              {(i === 7 || i === 10) && <div className="nav-sep" />}
-              <button className={cls('nav-item', page === n.id && 'active')} onClick={() => go(n.id)}>
-                {n.icon} {t(n.key)}
-                {n.id === 'tasks' && blockedCount > 0 && <span className="count">{blockedCount}</span>}
-              </button>
+          {NAV_GROUPS.map((g, gi) => (
+            <div key={g.key}>
+              {gi > 0 && <div className="nav-group-sep" />}
+              <div className="nav-group">{t(g.key)}</div>
+              {g.ids.filter(canPage).map((id) => {
+                const n = NAV.find((x) => x.id === id)!;
+                return (
+                  <button key={id} className={cls('nav-item', page === id && 'active')} onClick={() => go(id)} title={rail ? t(n.key) : undefined}>
+                    {n.icon} <span className="nav-label">{t(n.key)}</span>
+                    {id === 'tasks' && blockedCount > 0 && <span className="count">{blockedCount}</span>}
+                  </button>
+                );
+              })}
             </div>
           ))}
           <div className="side-foot">
-            {DEMO && <div className="demo-pill">🧪 {t('demoMode')}<DemoRolePicker /></div>}
-            <div className="row" style={{ padding: '0 6px' }}>
-              <button className="btn icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={t('theme')}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
-              <button className="btn icon" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')} aria-label={t('language')}><Languages size={16} /></button>
+            {DEMO && <div className="demo-pill hide-rail">🧪 {t('demoMode')}<DemoRolePicker /></div>}
+            <div className="row" style={{ padding: '0 4px' }}>
+              <button className="btn icon ghost" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={t('theme')} title={t('theme')}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
+              <button className="btn icon ghost" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')} aria-label={t('language')} title={t('language')}><Languages size={16} /></button>
               {busy && <span className="saving-dot pulse" title={t('saving')} />}
             </div>
             <div className="row me-row" style={{ padding: '6px', flexWrap: 'nowrap' }} onClick={openMe} title={t('editProfile')}>
               <Avatar name={dn(all.me.name)} />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{dn(all.me.name)}</div>
+              <div className="hide-rail" style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{dn(all.me.name)}</div>
                 <div className="muted" style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis' }}>{all.me.email}</div>
               </div>
-              {!DEMO && <button className="btn icon ghost" onClick={(e) => { e.stopPropagation(); signOut(); }} aria-label={t('signOut')}><LogOut size={16} /></button>}
+              {!DEMO && <button className="btn icon ghost hide-rail" onClick={(e) => { e.stopPropagation(); signOut(); }} aria-label={t('signOut')}><LogOut size={16} /></button>}
             </div>
           </div>
         </div>
@@ -157,7 +180,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
       <main className="main">
         <AnimatePresence mode="wait">
           <motion.div key={page} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22 }}>
-            {pages[page]}
+            {pages[shown]}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -184,7 +207,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
           </div>
         </div>
         <div className="grid g-2" style={{ gap: 8 }}>
-          {NAV.filter((n) => !MOBILE_TABS.includes(n.id)).map((n) => (
+          {NAV.filter((n) => !MOBILE_TABS.includes(n.id) && canPage(n.id)).map((n) => (
             <button key={n.id} className={cls('nav-item', page === n.id && 'active')} onClick={() => go(n.id)}>{n.icon} {t(n.key)}</button>
           ))}
         </div>

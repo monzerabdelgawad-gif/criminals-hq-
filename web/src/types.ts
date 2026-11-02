@@ -14,6 +14,8 @@ export interface Me {
   photo?: string;
   isAdmin?: boolean;
   perms?: string[];
+  /** only a few people (set on the server) can see the Activity log */
+  seeActivity?: boolean;
 }
 
 export interface LogEntry {

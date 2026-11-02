@@ -109,6 +109,7 @@ function findUser_(email) {
         lang: u.lang || 'en',
         photo: u.photo || '',
         isAdmin: isAdmin_(e, u.teamRole),
+        seeActivity: canSeeActivity_(e),
         perms: parsePerms_(u.perms)
       };
     }
@@ -129,7 +130,7 @@ function apiGetAll_(user) {
     me: user,
     data: data,
     dropdowns: readDropdowns_(ss),
-    activity: readLog_(ss, TABS.LOG, 200),
+    activity: user.seeActivity ? readLog_(ss, TABS.LOG, 200) : [],
     uploads: readLog_(ss, TABS.UPLOADS, 200),
     guide: readGuide_(ss),
     folderUrl: folderId ? 'https://drive.google.com/drive/folders/' + folderId : '',
@@ -505,6 +506,14 @@ function canEdit_(user, entityOrSection) {
  * Admins = instructors + the account the script runs as + everyone in the Script property
  * ADMIN_EMAILS (comma separated). ADMIN_EMAILS keeps people admin after the sheet moves to the team account.
  */
+/** Who may see the Activity log (Script Property ACTIVITY_EMAILS overrides the default list). */
+var ACTIVITY_DEFAULT_ = 'monzerabdelgawad@gmail.com,zeyadmehannaa@gmail.com';
+function canSeeActivity_(email) {
+  var list = String(props_().getProperty('ACTIVITY_EMAILS') || ACTIVITY_DEFAULT_).toLowerCase().split(',')
+    .map(function (s) { return s.trim(); }).filter(String);
+  return list.indexOf(String(email || '').trim().toLowerCase()) >= 0;
+}
+
 function adminEmails_() {
   var list = String(props_().getProperty('ADMIN_EMAILS') || '').toLowerCase().split(',')
     .map(function (s) { return s.trim(); }).filter(String);

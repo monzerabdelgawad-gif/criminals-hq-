@@ -163,6 +163,16 @@ export function useCan() {
   return (sec: Section) => !!all && (!!all.me.isAdmin || (sec !== 'meetings' && (all.me.perms ?? []).includes(sec)));
 }
 
+/** Who sees the Activity log. The server decides (me.seeActivity); this list is only a fallback
+ *  for a server that has not been updated yet. Must match ACTIVITY_DEFAULT_ in Code.gs. */
+const ACTIVITY_DEFAULT = ['monzerabdelgawad@gmail.com', 'zeyadmehannaa@gmail.com'];
+export function useSeeActivity() {
+  const { all } = useStore() ?? {};
+  if (!all) return false;
+  if (typeof all.me.seeActivity === 'boolean') return all.me.seeActivity;
+  return ACTIVITY_DEFAULT.includes(all.me.email.trim().toLowerCase());
+}
+
 /** Parse the USERS "Permissions" cell ("all" or "tasks, uploads"). */
 export function parsePerms(v: unknown): typeof SECTIONS[number][] {
   const s = String(v ?? '').toLowerCase().trim();

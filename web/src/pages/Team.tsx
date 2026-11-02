@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Plus, UserPlus } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Grid3x3, Mail, Pencil, Plus, ShieldCheck, UserPlus, X } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { SECTIONS, getPicture, parsePerms, useCan, useDisplayName, useMyRow, useProfileRights, useStore } from '../store';
 type Section = typeof SECTIONS[number];
 import { PhotoPicker } from '../components/PhotoPicker';
 import type { Row } from '../types';
-import { Avatar, Chip, Drawer, DrawerHead, Empty, Field, Locked, Modal, PageHead } from '../components/ui';
+import { Avatar, Chip, Drawer, DrawerHead, Empty, Field, Locked, Modal, PageHead, STATUS_COLOR } from '../components/ui';
 import { DONE, isMine } from '../util';
 
 export function Team() {
@@ -106,43 +106,127 @@ export function RolesPicker({ value, onChange }: { value: string; onChange: (v: 
   );
 }
 
+/** A member's profile: shows like a social profile; editing and access live behind buttons. */
 function UserBody({ u, onClose }: { u: Row; onClose: () => void }) {
+  const [mode, setMode] = useState<'view' | 'edit' | 'access'>('view');
+  useEffect(() => { setMode('view'); }, [u.id]);
+  if (mode === 'view') return <ProfileView u={u} onClose={onClose} onEdit={() => setMode('edit')} onAccess={() => setMode('access')} />;
+  return <ProfileEdit u={u} mode={mode} onBack={() => setMode('view')} onClose={onClose} />;
+}
+
+function ProfileView({ u, onClose, onEdit, onAccess }: { u: Row; onClose: () => void; onEdit: () => void; onAccess: () => void }) {
+  const { t, v, lang } = useI18n();
+  const { all } = useStore();
+  const dn = useDisplayName();
+  const rights = useProfileRights()(u);
+  const s = (f: string) => String(u[f] ?? '');
+  const email = s('email').trim().toLowerCase();
+  const name = dn(s('name')) || s('email');
+  const otherName = lang === 'ar' ? s('name') : s('nameAr');
+  const handle = '@' + (s('name') || email.split('@')[0] || 'member').toLowerCase().trim().replace(/[^a-z0-9\u0600-\u06ff]+/g, '.');
+  const coach = s('teamRole') === 'Instructor';
+  const roles = s('taskRoles').split(',').map((r) => r.trim()).filter(Boolean);
+  const meLike = { email, name: s('name'), teamRole: s('teamRole'), lang: 'en', taskRoles: roles };
+  const tasks = all!.data.tasks.filter((x) => isMine(x, meLike));
+  const open = tasks.filter((x) => !DONE.includes(String(x.status)));
+  const done = tasks.filter((x) => x.status === 'Completed').length;
+  const ups = all!.uploads.filter((x) => !!email && String(x.email).trim().toLowerCase() === email).length;
+  const photo = s('photo') || (rights.own ? getPicture() : '');
+
+  return (
+    <div className="ig">
+      <div className="ig-cover">
+        <div className="case-label">CASE FILE // {coach ? t('coach') : t('crew')}</div>
+        <button className="btn icon ghost ig-close" onClick={onClose} aria-label={t('close')}><X size={18} /></button>
+      </div>
+      <div className="ig-top">
+        <div className="ig-avatar"><Avatar name={name} src={photo || undefined} size={92} /></div>
+        <div className="ig-stats">
+          <div><b>{open.length}</b><span>{t('openTasks')}</span></div>
+          <div><b>{done}</b><span>{t('doneTasks')}</span></div>
+          <div><b>{ups}</b><span>{t('uploadsCount')}</span></div>
+        </div>
+      </div>
+      <div className="ig-info">
+        <div className="ig-name">
+          <bdi>{name}</bdi>
+          {coach && <BadgeCheck size={20} className="ig-verified" aria-label={t('coach')} />}
+          {rights.own && <span className="you-tag">{t('you')}</span>}
+        </div>
+        <div className="ig-handle"><bdi>{handle}</bdi>{otherName && otherName !== name && <> · <bdi>{otherName}</bdi></>}</div>
+        <div className="ig-bio">{v(s('teamRole') || 'Student')} · Criminals FLL · BIOGLOW 26/27</div>
+        <div className="ig-actions">
+          {rights.profile && <button className="btn" onClick={onEdit}><Pencil size={14} /> {t('profileEdit')}</button>}
+          {(rights.access || rights.own) && <button className="btn" onClick={onAccess}><ShieldCheck size={14} /> {rights.access ? t('manageAccess') : t('yourAccess')}</button>}
+          {email && !rights.own && <a className="btn" href={`mailto:${email}`}><Mail size={14} /> {t('message')}</a>}
+        </div>
+      </div>
+      {roles.length > 0 && (
+        <div className="ig-highlights">
+          {roles.map((r) => (
+            <div key={r} className="ig-hl">
+              <div className="ig-hl-ring"><span>{r.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}</span></div>
+              <div className="ig-hl-label">{r}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="ig-tabs"><span className="on"><Grid3x3 size={15} /> {t('currentWork')}</span></div>
+      {open.length === 0 ? <Empty>{t('noCurrentWork')}</Empty> : (
+        <div className="ig-grid">
+          {open.slice(0, 12).map((x) => (
+            <div key={x.id} className="ig-tile" style={{ ['--c' as string]: STATUS_COLOR[String(x.status)] }} title={String(x.task)}>
+              <span className="id-tag">{x.id}</span>
+              <div className="ig-tile-t">{x.task}</div>
+              <span className="ig-tile-s"><i />{v(x.status)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileEdit({ u, mode, onBack, onClose }: { u: Row; mode: 'edit' | 'access'; onBack: () => void; onClose: () => void }) {
   const { t, v } = useI18n();
   const { update } = useStore();
   const dn = useDisplayName();
   const rights = useProfileRights()(u);
   const s = (f: string) => String(u[f] ?? '');
   const save = (f: string) => (val: string) => update('users', u, { [f]: val });
-  const roles = s('taskRoles').split(',').map((r) => r.trim()).filter(Boolean);
   return (
     <>
       <DrawerHead onClose={onClose}>
-        <h3>{dn(s('name')) || s('email')}{rights.own && <span className="you-tag">{t('you')}</span>}</h3>
-        <div className="muted small">{s('email')}</div>
+        <button className="btn sm ghost" style={{ marginBottom: 6, marginInlineStart: -8 }} onClick={onBack}><ArrowLeft size={14} className="flip" /> {t('backToProfile')}</button>
+        <h3>{mode === 'edit' ? t('profileEdit') : (rights.access ? t('manageAccess') : t('yourAccess'))}</h3>
+        <div className="muted small">{dn(s('name')) || s('email')}</div>
       </DrawerHead>
       <div className="drawer-body">
-        <PhotoPicker name={dn(s('name'))} value={s('photo') || (rights.own ? getPicture() : '')} editable={rights.profile}
-          onChange={(d) => update('users', u, { photo: d })} />
-        {!rights.profile && <div className="lock-note">🔒 {t('onlyOwner').replace('{name}', dn(s('name')) || s('email'))}</div>}
-        <div className="fields">
-          <Field label={t('name')} value={s('name')} onSave={save('name')} readOnly={!rights.profile} />
-          <Field label={t('nameAr')} value={s('nameAr')} onSave={save('nameAr')} readOnly={!rights.profile} />
-          <Field label={t('language')} type="select" options={['en', 'ar']} value={s('lang')} onSave={save('lang')} readOnly={!rights.profile} />
-          <div className="full">
-            <label className="lbl">{t('taskRoles')}</label>
-            {rights.profile
-              ? <RolesPicker value={s('taskRoles')} onChange={save('taskRoles')} />
-              : <div className="row" style={{ gap: 6 }}>{roles.length ? roles.map((r) => <Chip key={r}>{r}</Chip>) : <span className="muted">—</span>}</div>}
-          </div>
-        </div>
-        <div className="card-title" style={{ marginTop: 22 }}>{t('members')}</div>
-        <div className="fields">
-          <Field label={t('email')} value={s('email')} onSave={save('email')} readOnly={!rights.access || rights.ownEmailLocked} />
-          <Field label={t('teamRole')} type="select" options={['Student', 'Instructor']} translate value={s('teamRole')}
-            onSave={save('teamRole')} readOnly={!rights.access} />
-        </div>
-        {!rights.access && <div className="muted small" style={{ marginTop: 8 }}>{t('accessAdmins')} ({v(s('teamRole') || 'Student')})</div>}
-        <PermsPanel u={u} editable={rights.access} />
+        {mode === 'edit' ? (
+          <>
+            <PhotoPicker name={dn(s('name'))} value={s('photo') || (rights.own ? getPicture() : '')} editable={rights.profile}
+              onChange={(d) => update('users', u, { photo: d })} />
+            <div className="fields">
+              <Field label={t('name')} value={s('name')} onSave={save('name')} readOnly={!rights.profile} />
+              <Field label={t('nameAr')} value={s('nameAr')} onSave={save('nameAr')} readOnly={!rights.profile} />
+              <Field label={t('language')} type="select" options={['en', 'ar']} value={s('lang')} onSave={save('lang')} readOnly={!rights.profile} />
+              <div className="full">
+                <label className="lbl">{t('taskRoles')}</label>
+                <RolesPicker value={s('taskRoles')} onChange={save('taskRoles')} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="fields">
+              <Field label={t('email')} value={s('email')} onSave={save('email')} readOnly={!rights.access || rights.ownEmailLocked} />
+              <Field label={t('teamRole')} type="select" options={['Student', 'Instructor']} translate value={s('teamRole')}
+                onSave={save('teamRole')} readOnly={!rights.access} />
+            </div>
+            {!rights.access && <div className="muted small" style={{ marginTop: 8 }}>{t('accessAdmins')} ({v(s('teamRole') || 'Student')})</div>}
+            <PermsPanel u={u} editable={rights.access} />
+          </>
+        )}
       </div>
     </>
   );

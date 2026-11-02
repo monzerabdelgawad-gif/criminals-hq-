@@ -149,7 +149,7 @@ function build(): AllData {
   const FI = 'https://www.firstinspires.org/resource-library/fll/challenge/challenge-and-resources';
   return {
     rev: 1,
-    me: { email: 'demo@criminals.team', name: 'Monzer', nameAr: 'منذر', teamRole: 'Student', taskRoles: [], lang: 'ar', photo: '', isAdmin: true, perms: [] },
+    me: { email: 'demo@criminals.team', name: 'Monzer', nameAr: 'منذر', teamRole: 'Student', taskRoles: [], lang: 'ar', photo: '', isAdmin: true, perms: [], seeActivity: true },
     data: {
       tasks: buildTasks(),
       milestones: M.map((m, i) => ({ _row: i + 4, id: m[0], workstream: m[1], name: m[2], description: '', targetDate: m[3],
@@ -195,7 +195,15 @@ function build(): AllData {
 
 const KEY = 'criminals.demo.v5';
 function load(): AllData {
-  try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch { /* ignore */ }
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) {
+      const d = JSON.parse(s) as AllData;
+      // demo data saved before the Activity restriction: admins can see it
+      if (d.me.seeActivity === undefined) d.me.seeActivity = !!d.me.isAdmin;
+      return d;
+    }
+  } catch { /* ignore */ }
   return build();
 }
 function save(d: AllData) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* ignore */ } }
@@ -211,6 +219,7 @@ export function getDemoRole(): DemoRole {
 export function setDemoRole(role: DemoRole) {
   const db = load();
   db.me.isAdmin = role === 'admin';
+  db.me.seeActivity = role === 'admin';
   db.me.perms = role === 'tasks' ? ['tasks', 'uploads'] : [];
   save(db);
   location.reload();
