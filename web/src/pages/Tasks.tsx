@@ -98,7 +98,7 @@ export function Tasks() {
         <div className="card" style={{ padding: 6 }}>
           {filtered.length === 0 ? <Empty>—</Empty> : (
             <div className="table-wrap">
-              <table className="t">
+              <table className="t mc">
                 <thead><tr>
                   <th>ID</th><th>{t('task')}</th><th>{t('workstream')}</th><th>{t('owner')}</th><th>{t('deadline')}</th>
                   <th>{t('priority')}</th><th>{t('status')}</th><th style={{ minWidth: 90 }}>%</th>

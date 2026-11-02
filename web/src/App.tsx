@@ -206,7 +206,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
             <button className="btn sm" style={{ marginTop: 10 }} onClick={openMe}>✏️ {t('editProfile')}</button>
           </div>
         </div>
-        <div className="grid g-2" style={{ gap: 8 }}>
+        <div className="more-grid">
           {NAV.filter((n) => !MOBILE_TABS.includes(n.id) && canPage(n.id)).map((n) => (
             <button key={n.id} className={cls('nav-item', page === n.id && 'active')} onClick={() => go(n.id)}>{n.icon} {t(n.key)}</button>
           ))}
