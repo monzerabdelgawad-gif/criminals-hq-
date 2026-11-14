@@ -38,25 +38,46 @@ function ensureMeetingsTab_() {
   return sh;
 }
 
+/** Return the next Monday 23:00 calendar date after an instant in Cairo time. */
+function nextWeeklyMeetingDate_(after) {
+  var ymd = Utilities.formatDate(after, MEETING_TZ_, 'yyyy-MM-dd').split('-');
+  var day = Number(Utilities.formatDate(after, MEETING_TZ_, 'u')); // Monday=1
+  var clock = Utilities.formatDate(after, MEETING_TZ_, 'HH:mm');
+  var days = (8 - day) % 7;
+  if (days === 0 && clock >= '23:00') days = 7;
+  var calendarDay = new Date(Date.UTC(Number(ymd[0]), Number(ymd[1]) - 1, Number(ymd[2]) + days, 12));
+  return parseDate_(Utilities.formatDate(calendarDay, 'UTC', 'yyyy-MM-dd'));
+}
+
 /** Seed and maintain the next occurrence of the standing Monday 23:00 meeting. */
 function ensureWeeklyMeeting_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ensureMeetingsTab_();
   var rows = readEntity_(ss, 'meetings').filter(function (m) { return String(m.recurrence) === 'Weekly'; });
-  if (rows.some(function (m) { return String(m.status) !== 'Cancelled' && meetingStart_(m) > new Date(); })) return;
+  var now = new Date();
+  var upcoming = rows.filter(function (m) {
+    var start = meetingStart_(m);
+    return String(m.status) !== 'Cancelled' && start && start > now;
+  }).sort(function (a, b) { return meetingStart_(a).getTime() - meetingStart_(b).getTime(); });
+  if (upcoming.length) {
+    var next = upcoming[0];
+    var start = meetingStart_(next);
+    if (Utilities.formatDate(start, MEETING_TZ_, 'u') === '1' && Utilities.formatDate(start, MEETING_TZ_, 'HH:mm') === '23:00') return;
+    var correctedDate = nextWeeklyMeetingDate_(now);
+    sh.getRange(next._row, 3).setNumberFormat(DATE_FORMAT).setValue(dateSerial_(correctedDate));
+    sh.getRange(next._row, 4).setNumberFormat('@').setValue('23:00');
+    sh.getRange(next._row, 12).clearContent();
+    SpreadsheetApp.flush();
+    bumpRev_();
+    return;
+  }
 
   var latest = rows.reduce(function (max, m) {
     var start = meetingStart_(m);
     return start && start > max ? start : max;
   }, new Date(0));
-  var now = new Date();
   var base = latest > now ? latest : now;
-  var day = Number(Utilities.formatDate(base, MEETING_TZ_, 'u')); // Monday=1
-  var days = (8 - day) % 7;
-  if (days === 0 && Utilities.formatDate(base, MEETING_TZ_, 'HH:mm') >= '23:00') days = 7;
-  var date = new Date(base.getTime() + days * 86400000);
-  var ymd = Utilities.formatDate(date, MEETING_TZ_, 'yyyy-MM-dd');
-  date = Utilities.parseDate(ymd, MEETING_TZ_, 'yyyy-MM-dd');
+  var date = nextWeeklyMeetingDate_(base);
 
   var def = ENTITIES.meetings;
   var vals = sh.getDataRange().getDisplayValues();
@@ -64,7 +85,7 @@ function ensureWeeklyMeeting_() {
   var id = nextId_('meetings', vals, loc, {});
   sh.insertRowAfter(loc.end);
   var row = loc.end + 1;
-  var values = [id, 'Weekly team meeting', date, '23:00', 60, 'https://meet.google.com/hyv-uzjb-bgp', '', '', '', 'Scheduled', 'Criminals HQ', '', 'Weekly'];
+  var values = [id, 'Weekly team meeting', dateSerial_(date), '23:00', 60, 'https://meet.google.com/hyv-uzjb-bgp', '', '', '', 'Scheduled', 'Criminals HQ', '', 'Weekly'];
   sh.getRange(row, 1, 1, values.length).setValues([values]);
   sh.getRange(row, 3).setNumberFormat(DATE_FORMAT);
   sh.getRange(row, 1, 1, values.length).setFontWeight('normal').setFontColor(null).setBackground(null);

@@ -83,7 +83,7 @@ Every push to `main` deploys again on its own. (`.github/workflows/deploy.yml` i
 After editing the `.gs` files: **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The URL stays the same.
 
 ### Weekly meeting reminders
-The Meetings page has a recurring Monday 23:00 Cairo-time meeting with its own fixed Google Meet link. `setupMeetings()` creates the next occurrence and installs a five-minute reminder trigger. Run it once from the Apps Script editor after copying/updating `meetings.gs`, and approve the Mail permission if Google asks. It sends the same morning, one-hour, and start-time reminders as other scheduled meetings. Additional meetings can still be added from the dashboard and receive the same reminders.
+The Meetings page has a recurring Monday 23:00 Cairo-time meeting with its own fixed Google Meet link. `setupMeetings()` creates or corrects the next occurrence and installs a five-minute reminder trigger. Run it from the Apps Script editor after copying/updating `meetings.gs`, and approve the Mail permission if Google asks. It sends the same morning, one-hour, and start-time reminders as other scheduled meetings. Additional meetings can still be added from the dashboard and receive the same reminders.
 
 ## Moving to a team Google account later
 1. In the team account: **File → Make a copy** of the sheet (the script comes with it), or transfer ownership.
