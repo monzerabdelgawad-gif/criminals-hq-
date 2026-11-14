@@ -20,6 +20,7 @@ Vercel site  ──Google sign-in──►  Apps Script web app  ──►  Shee
 | Weekly Review | WEEKLY REVIEW |
 | Team | USERS (login access) + SETTINGS → Team Directory |
 | Uploads | Drive folder + UPLOADS tab |
+| Content | Notion → Criminals Content data source |
 | Activity | ACTIVITY LOG |
 | Resources · Settings · Guide | SETTINGS · USER GUIDE |
 
@@ -36,7 +37,7 @@ Vercel site  ──Google sign-in──►  Apps Script web app  ──►  Shee
 
 ### 2. Apps Script backend
 1. Open the sheet → **Extensions → Apps Script**.
-2. Create 3 script files with the same names and paste in the contents: `Code.gs`, `sheetMap.gs`, `setup.gs` (from `apps-script/`).
+2. Create 4 script files with the same names and paste in the contents: `Code.gs`, `sheetMap.gs`, `setup.gs`, and `content.gs` (from `apps-script/`).
 3. **Project Settings (⚙) → Script properties**, then add:
    - `OAUTH_CLIENT_ID` = the client ID from step 1
    - `DRIVE_FOLDER_ID` is set by `setup` to the **criminals docs** folder (`1N71gnZRUF1VkqJ9Z6mifKFlcz6CqCA4o`). Only set it yourself to use a different folder.
@@ -46,6 +47,17 @@ Vercel site  ──Google sign-in──►  Apps Script web app  ──►  Shee
    - creates `USERS`, `ACTIVITY LOG`, `UPLOADS` and adds you as the first user
 5. **Deploy → New deployment → Web app**: Execute as **Me**, Who has access **Anyone** → Deploy → copy the URL ending in `/exec`.
    > "Anyone" only means the URL can be reached. Every request still needs a signed-in Google account that is on the USERS list.
+
+### 2b. Connect the Content page to Notion
+The dashboard's Content page uses the existing `Criminals Content` database. The Notion integration token stays on the Apps Script server and is never sent to the browser.
+
+1. In Notion, create an **internal integration** with read, insert, and update content access. Enable reading user names if you want to assign people from the Content page.
+2. Share the `Criminals Content` database with that integration (open the database page → `•••` → `Connections`).
+3. In the Apps Script project, open **Project Settings → Script properties** and add `NOTION_TOKEN` with the integration's secret token. `NOTION_DATA_SOURCE_ID` is optional; the current data source ID is already configured in `content.gs`.
+4. Save and deploy a **new version** of the web app (Deploy → Manage deployments → Edit → New version → Deploy).
+5. In the dashboard, open **Content**. The list refreshes every 20 seconds; edits are saved directly to Notion. Give team members the `content` edit permission in Team → Members if they need to edit.
+
+The editor supports Markdown headings, lists, quotes, bold, italic, links and code blocks. The sync runs through the dashboard and checks Notion every 20 seconds; Notion does not send webhooks to this Apps Script app.
 
 ### 3. Add the team
 In the sheet's `USERS` tab (or in the dashboard under Team → Add member), add each person's Gmail, name, role (Student/Instructor) and task roles (e.g. `Programmer, Builder`). Task roles connect people to tasks, because the sheet assigns tasks to roles, not names.

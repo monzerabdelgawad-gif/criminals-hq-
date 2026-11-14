@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Activity as ActivityIcon, BookOpen, CalendarClock, CalendarRange, Flag, Home as HomeIcon, Languages, Link2, ListChecks,
+  Activity as ActivityIcon, BookOpen, CalendarClock, CalendarRange, FileText, Flag, Home as HomeIcon, Languages, Link2, ListChecks,
   LogOut, Menu, Moon, NotebookPen, PanelLeftClose, PanelLeftOpen, ShieldAlert, Sun, UploadCloud, Users, Settings as SettingsIcon,
 } from 'lucide-react';
 import { getToken } from './api';
@@ -22,10 +22,11 @@ import { Risks } from './pages/Risks';
 import { Weekly } from './pages/Weekly';
 import { Team } from './pages/Team';
 import { Meetings } from './pages/Meetings';
+import { Content } from './pages/Content';
 import { Activity, Guide, Resources, Settings, Uploads } from './pages/Other';
 import { cls, isOverdue } from './util';
 
-export type Page = 'home' | 'meetings' | 'tasks' | 'timeline' | 'milestones' | 'risks' | 'weekly' | 'team' | 'uploads' | 'activity' | 'resources' | 'guide' | 'settings';
+export type Page = 'home' | 'meetings' | 'tasks' | 'timeline' | 'milestones' | 'risks' | 'weekly' | 'team' | 'uploads' | 'activity' | 'resources' | 'content' | 'guide' | 'settings';
 
 const NAV: { id: Page; icon: ReactNode; key: TKey }[] = [
   { id: 'home', icon: <HomeIcon size={18} />, key: 'home' },
@@ -39,6 +40,7 @@ const NAV: { id: Page; icon: ReactNode; key: TKey }[] = [
   { id: 'team', icon: <Users size={18} />, key: 'team' },
   { id: 'activity', icon: <ActivityIcon size={18} />, key: 'activity' },
   { id: 'resources', icon: <Link2 size={18} />, key: 'resources' },
+  { id: 'content', icon: <FileText size={18} />, key: 'content' },
   { id: 'guide', icon: <BookOpen size={18} />, key: 'guide' },
   { id: 'settings', icon: <SettingsIcon size={18} />, key: 'settings' },
 ];
@@ -47,7 +49,7 @@ const NAV_GROUPS: { key: TKey; ids: Page[] }[] = [
   { key: 'navOps', ids: ['home', 'meetings', 'tasks', 'uploads'] },
   { key: 'navPlan', ids: ['timeline', 'milestones', 'risks', 'weekly'] },
   { key: 'navCrew', ids: ['team', 'activity'] },
-  { key: 'navMore', ids: ['resources', 'guide', 'settings'] },
+  { key: 'navMore', ids: ['resources', 'content', 'guide', 'settings'] },
 ];
 const RAIL_KEY = 'criminals.rail';
 const MOBILE_TABS: Page[] = ['home', 'meetings', 'tasks', 'uploads'];
@@ -129,7 +131,7 @@ function Shell({ theme, setTheme }: { theme: string; setTheme: (t: string) => vo
   const pages: Record<Page, ReactNode> = {
     home: <Home go={go} />, meetings: <Meetings />, tasks: <Tasks />, timeline: <Timeline />, milestones: <Milestones />, risks: <Risks />,
     weekly: <Weekly />, team: <Team />, uploads: <Uploads />, activity: <Activity />, resources: <Resources />,
-    guide: <Guide />, settings: <Settings theme={theme} setTheme={setTheme} />,
+    content: <Content />, guide: <Guide />, settings: <Settings theme={theme} setTheme={setTheme} />,
   };
 
   return (

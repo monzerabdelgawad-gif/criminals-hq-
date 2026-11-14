@@ -153,7 +153,7 @@ export function useMyRow(): Row | undefined {
 }
 
 /** Sections with their own edit switch (must match SECTIONS_ in Code.gs). */
-export const SECTIONS = ['tasks', 'milestones', 'risks', 'weekly', 'uploads', 'resources', 'settings'] as const;
+export const SECTIONS = ['tasks', 'milestones', 'risks', 'weekly', 'uploads', 'resources', 'settings', 'content'] as const;
 /** 'meetings' has no switch: only coaches / admins edit it. */
 export type Section = typeof SECTIONS[number] | 'meetings';
 

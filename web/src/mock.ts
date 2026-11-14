@@ -232,6 +232,7 @@ export async function mockCall(body: Record<string, unknown>): Promise<unknown> 
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   switch (body.action) {
     case 'login': return { ok: true, token: 'demo', user: me };
+    case 'contentList': case 'contentGet': case 'contentSave': case 'contentArchive': return { ok: false, error: 'content_not_configured' };
     case 'rev': return { ok: true, rev: db.rev };
     case 'getAll': return { ok: true, ...db };
     case 'update': {

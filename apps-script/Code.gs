@@ -33,6 +33,10 @@ function doPost(e) {
     switch (action) {
       case 'rev': return json_({ ok: true, rev: getRev_() });
       case 'getAll': return json_(apiGetAll_(user));
+      case 'contentList': return json_(apiContentList_(user));
+      case 'contentGet': return json_(apiContentGet_(user, body));
+      case 'contentSave': return json_(apiContentSave_(user, body));
+      case 'contentArchive': return json_(apiContentArchive_(user, body));
       case 'update': return json_(apiUpdate_(user, body));
       case 'add': return json_(apiAdd_(user, body));
       case 'upload': return json_(apiUpload_(user, body));
@@ -41,7 +45,9 @@ function doPost(e) {
     }
   } catch (err) {
     console.error(err && err.stack || err);
-    return json_({ ok: false, error: 'server_error', message: String(err && err.message || err) });
+    var message = String(err && err.message || err);
+    var externalErrors = ['content_not_configured', 'notion_unauthorized', 'notion_forbidden', 'notion_not_found', 'notion_api_error'];
+    return json_({ ok: false, error: externalErrors.indexOf(message) >= 0 ? message : 'server_error', message: message });
   }
 }
 
@@ -484,9 +490,9 @@ var MAX_PHOTO_CHARS_ = 45000; // a cell holds 50,000 characters
  * Edit permissions per section, stored in USERS -> Permissions as "all" or a list like "tasks, uploads".
  * Empty = view only. Admins can always edit everything.
  */
-var SECTIONS_ = ['tasks', 'milestones', 'risks', 'weekly', 'uploads', 'resources', 'settings'];
+var SECTIONS_ = ['tasks', 'milestones', 'risks', 'weekly', 'uploads', 'resources', 'settings', 'content'];
 var ENTITY_SECTION_ = { tasks: 'tasks', milestones: 'milestones', risks: 'risks', weekly: 'weekly', weeklyQ: 'weekly',
-  resources: 'resources', settings: 'settings', team: 'settings', uploads: 'uploads' };
+  resources: 'resources', settings: 'settings', team: 'settings', uploads: 'uploads', content: 'content' };
 
 function parsePerms_(v) {
   var s = String(v || '').toLowerCase();
