@@ -25,6 +25,7 @@ export function Content() {
   const [dirty, setDirty] = useState(false);
   const [bodyDirty, setBodyDirty] = useState(false);
   const [error, setError] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
   const [syncedAt, setSyncedAt] = useState('');
   const [conflict, setConflict] = useState(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -37,11 +38,11 @@ export function Content() {
       const knownPeople = new Map((r.users || []).map((p) => [p.id, p]));
       (r.pages || []).forEach((p) => p.assignees.forEach((id, i) => { if (!knownPeople.has(id)) knownPeople.set(id, { id, name: p.assigneeNames?.[i] || id }); }));
       setPeople(Array.from(knownPeople.values()));
-      setSyncedAt(r.syncedAt || new Date().toISOString()); setError('');
+      setSyncedAt(r.syncedAt || new Date().toISOString()); setError(''); setErrorDetail('');
       const current = selected?.id ? (r.pages || []).find((p) => p.id === selected.id) : undefined;
       setConflict(!!current && !!selected?.editedAt && current.editedAt !== selected.editedAt);
     } else {
-      setError(r.error || 'network');
+      setError(r.error || 'network'); setErrorDetail(typeof r.message === 'string' ? r.message : '');
     }
     if (!quiet) setLoading(false);
   }, [selected]);
@@ -62,21 +63,21 @@ export function Content() {
 
   const open = async (page: ContentPage) => {
     if (dirty && !window.confirm(lang === 'ar' ? 'في تغييرات لسه متحفظتش. تفتح الصفحة دي؟' : 'You have unsaved changes. Open this page?')) return;
-    setSelected({ ...page, markdown: '' }); setDirty(false); setBodyDirty(false); setConflict(false); setError('');
+    setSelected({ ...page, markdown: '' }); setDirty(false); setBodyDirty(false); setConflict(false); setError(''); setErrorDetail('');
     const r = await call<{ markdown: string }>('contentGet', { id: page.id });
     if (r.ok) setSelected((s) => s?.id === page.id ? { ...s, markdown: r.markdown || '' } : s);
-    else setError(r.error || 'network');
+    else { setError(r.error || 'network'); setErrorDetail(typeof r.message === 'string' ? r.message : ''); }
   };
 
   const create = () => {
     if (dirty && !window.confirm(lang === 'ar' ? 'في تغييرات لسه متحفظتش. تبدأ صفحة جديدة؟' : 'You have unsaved changes. Start a new page?')) return;
-    setSelected({ ...blank }); setDirty(true); setBodyDirty(true); setConflict(false); setError('');
+    setSelected({ ...blank }); setDirty(true); setBodyDirty(true); setConflict(false); setError(''); setErrorDetail('');
   };
 
   const save = async () => {
-    if (!selected?.title.trim()) { setError('missing_title'); return; }
-    if (conflict) { setError('content_conflict'); return; }
-    setSaving(true); setError('');
+    if (!selected?.title.trim()) { setError('missing_title'); setErrorDetail(''); return; }
+    if (conflict) { setError('content_conflict'); setErrorDetail(''); return; }
+    setSaving(true); setError(''); setErrorDetail('');
     const saveToNotion = (allowUnsupportedReplace = false) => call<{ page: ContentPage }>('contentSave', {
       id: selected.id || undefined, title: selected.title, status: selected.status,
       assignees: selected.assignees, markdown: selected.markdown, bodyChanged: !selected.id || bodyDirty,
@@ -94,7 +95,7 @@ export function Content() {
       setPages((old) => [...old.filter((p) => p.id !== saved.id), r.page].sort((a, b) => a.title.localeCompare(b.title)));
       toast(lang === 'ar' ? 'اتحفظ واتزامن مع Notion ✓' : 'Saved and synced with Notion ✓', 'ok');
     } else {
-      setError(r.error || 'network');
+      setError(r.error || 'network'); setErrorDetail(typeof r.message === 'string' ? r.message : '');
       if (r.error === 'content_conflict') { setConflict(true); void load(true); }
     }
   };
@@ -105,7 +106,7 @@ export function Content() {
     const r = await call<{ id: string }>('contentArchive', { id: selected.id });
     setSaving(false);
     if (r.ok) { setPages((old) => old.filter((p) => p.id !== selected.id)); setSelected(null); setDirty(false); toast(lang === 'ar' ? 'اتنقلت لسلة Notion' : 'Moved to Notion trash', 'ok'); }
-    else setError(r.error || 'network');
+    else { setError(r.error || 'network'); setErrorDetail(typeof r.message === 'string' ? r.message : ''); }
   };
 
   const insert = (prefix: string, suffix = '') => {
@@ -117,13 +118,13 @@ export function Content() {
     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start + prefix.length, end + prefix.length); });
   };
 
-  const errText = (code: string) => ({
+  const errText = (code: string, detail: string) => ({
     content_not_configured: t('contentSetup'), notion_unauthorized: lang === 'ar' ? 'مفتاح Notion غير صحيح.' : 'The Notion token is invalid.',
     notion_forbidden: lang === 'ar' ? 'التكامل محتاج صلاحية على قاعدة البيانات.' : 'The integration needs access to this database.',
     notion_not_found: lang === 'ar' ? 'قاعدة البيانات مش ظاهرة للتكامل. اتأكد إنك شاركتها معاه.' : 'The database is unavailable to the integration. Share it with the integration.',
     no_permission: t('noPermission'), content_conflict: t('contentConflict'), missing_title: lang === 'ar' ? 'اكتب عنوان للصفحة الأول.' : 'Add a title first.',
     content_has_unsupported: t('contentUnsupported'),
-  } as Record<string, string>)[code] || (code === 'network' ? t('offline') : `${t('error')}: ${code}`);
+  } as Record<string, string>)[code] || (code === 'network' ? t('offline') : `${t('error')}: ${detail || code}`);
 
   return <div>
     <PageHead title={t('content')} sub={t('contentSub')}>
@@ -131,7 +132,7 @@ export function Content() {
       {canEdit && <button className="btn primary" onClick={create}><FilePlus2 size={15} /> {t('contentNew')}</button>}
     </PageHead>
 
-    {error && <div className="card content-alert" role="status">{errText(error)}</div>}
+    {error && <div className="card content-alert" role="status">{errText(error, errorDetail)}</div>}
     <div className="content-layout">
       <section className="card content-list-card">
         <div className="content-search"><Search size={16} /><input className="input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('contentSearch')} /></div>
