@@ -17,6 +17,7 @@ var SITE_URL_DEFAULT_ = 'https://criminals-hq.vercel.app';
 
 function setupMeetings() {
   ensureMeetingsTab_();
+  ensureWeeklyMeeting_();
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'meetingReminders') ScriptApp.deleteTrigger(t);
   });
@@ -26,10 +27,48 @@ function setupMeetings() {
 
 function ensureMeetingsTab_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  return ensureTab_(ss, TABS.MEETINGS,
+  var sh = ensureTab_(ss, TABS.MEETINGS,
     ['Meeting ID', 'Title', 'Date', 'Start Time', 'Duration (min)', 'Link', 'Location', 'Agenda', 'Notes / Minutes',
-      'Status', 'Created By', 'Reminders Sent'],
-    [90, 220, 110, 90, 100, 240, 140, 260, 260, 100, 110, 110]);
+      'Status', 'Created By', 'Reminders Sent', 'Recurrence'],
+    [90, 220, 110, 90, 100, 240, 140, 260, 260, 100, 110, 110, 110]);
+  if (sh.getRange(1, 13).getValue() !== 'Recurrence') {
+    sh.getRange(1, 13).setValue('Recurrence').setFontWeight('bold').setFontColor('#ffffff').setBackground('#1b1f3b');
+    sh.setColumnWidth(13, 110);
+  }
+  return sh;
+}
+
+/** Seed and maintain the next occurrence of the standing Monday 23:00 meeting. */
+function ensureWeeklyMeeting_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ensureMeetingsTab_();
+  var rows = readEntity_(ss, 'meetings').filter(function (m) { return String(m.recurrence) === 'Weekly'; });
+  if (rows.some(function (m) { return String(m.status) !== 'Cancelled' && meetingStart_(m) > new Date(); })) return;
+
+  var latest = rows.reduce(function (max, m) {
+    var start = meetingStart_(m);
+    return start && start > max ? start : max;
+  }, new Date(0));
+  var now = new Date();
+  var base = latest > now ? latest : now;
+  var day = Number(Utilities.formatDate(base, MEETING_TZ_, 'u')); // Monday=1
+  var days = (8 - day) % 7;
+  if (days === 0 && Utilities.formatDate(base, MEETING_TZ_, 'HH:mm') >= '23:00') days = 7;
+  var date = new Date(base.getTime() + days * 86400000);
+  var ymd = Utilities.formatDate(date, MEETING_TZ_, 'yyyy-MM-dd');
+  date = Utilities.parseDate(ymd, MEETING_TZ_, 'yyyy-MM-dd');
+
+  var def = ENTITIES.meetings;
+  var vals = sh.getDataRange().getDisplayValues();
+  var loc = locate_(def, vals);
+  var id = nextId_('meetings', vals, loc, {});
+  sh.insertRowAfter(loc.end);
+  var row = loc.end + 1;
+  var values = [id, 'Weekly team meeting', date, '23:00', 60, 'https://meet.google.com/hyv-uzjb-bgp', '', '', '', 'Scheduled', 'Criminals HQ', '', 'Weekly'];
+  sh.getRange(row, 1, 1, values.length).setValues([values]);
+  sh.getRange(row, 3).setNumberFormat(DATE_FORMAT);
+  sh.getRange(row, 1, 1, values.length).setFontWeight('normal').setFontColor(null).setBackground(null);
+  bumpRev_();
 }
 
 /** Start of a meeting row as a real Date (Cairo time), or null if date/time are missing. */
@@ -46,6 +85,7 @@ function meetingReminders() {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) return;
   try {
+    ensureWeeklyMeeting_();
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var def = ENTITIES.meetings;
     var sh = ss.getSheetByName(def.tab);

@@ -81,7 +81,7 @@ var ENTITIES = {
   },
   meetings: {
     tab: TABS.MEETINGS, header: 'Meeting ID', keyMode: 'id',
-    fields: ['id', 'title', 'date', 'time', 'duration', 'link', 'location', 'agenda', 'notes', 'status', 'createdBy', 'remindersSent'],
+    fields: ['id', 'title', 'date', 'time', 'duration', 'link', 'location', 'agenda', 'notes', 'status', 'createdBy', 'remindersSent', 'recurrence'],
     dateFields: ['date'],
     numberFields: ['duration'],
     readOnly: ['id', 'createdBy', 'remindersSent']
